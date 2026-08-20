@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabase/client'
 import { Users, Search, RefreshCw, Trash2, Calendar, Mail, ShieldAlert } from 'lucide-react'
 
 interface UserProfile {
