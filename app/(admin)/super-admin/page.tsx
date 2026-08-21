@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Settings, Upload, Save, Palette, Phone, ShieldAlert, BarChart3, User } from 'lucide-react'
+import { Settings, Upload, Save, Palette, Phone, ShieldAlert, BarChart3, User, Users, Search, RefreshCw, Trash2, Calendar, Mail } from 'lucide-react'
 
 export default function SuperAdminDashboard() {
   const supabase = createClient()
@@ -25,35 +25,67 @@ export default function SuperAdminDashboard() {
   // Report State
   const [reports, setReports] = useState<any[]>([])
 
-  useEffect(() => {
-    async function fetchData() {
-      // 1. Fetch Settings
-      const { data: settingsData } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('id', 1)
-        .single()
+  // User Management States
+  const [usersList, setUsersList] = useState<any[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-      if (settingsData) {
-        setSiteName(settingsData.site_name || 'Trend Mart')
-        setPrimaryColor(settingsData.primary_color || '#f97316')
-        setContactNumber(settingsData.contact_number || '')
-        setLogoPreview(settingsData.logo_url || '')
-        setAvatarPreview(settingsData.admin_avatar_url || '') // Super admin profile image
-      }
+  // Fetch Data Function
+  const fetchData = async () => {
+    setFetching(true)
 
-      // 2. Fetch Reports / Platform Data
-      const { data: reportData } = await supabase
-        .from('ads')
-        .select('*')
-        .limit(10)
+    // 1. Fetch Settings
+    const { data: settingsData } = await supabase
+      .from('settings')
+      .select('*')
+      .eq('id', 1)
+      .single()
 
-      if (reportData) {
-        setReports(reportData)
-      }
-
-      setFetching(false)
+    if (settingsData) {
+      setSiteName(settingsData.site_name || 'Trend Mart')
+      setPrimaryColor(settingsData.primary_color || '#f97316')
+      setContactNumber(settingsData.contact_number || '')
+      setLogoPreview(settingsData.logo_url || '')
+      setAvatarPreview(settingsData.admin_avatar_url || '')
     }
+
+    // 2. Fetch Reports / Platform Data
+    const { data: reportData } = await supabase
+      .from('ads')
+      .select('*')
+      .limit(10)
+
+    if (reportData) {
+      setReports(reportData)
+    }
+
+    // 3. Fetch Users & Total Ads Count
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (!profileError && profiles) {
+      const usersWithAds = await Promise.all(
+        profiles.map(async (user) => {
+          const { count } = await supabase
+            .from('ads')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+
+          return {
+            ...user,
+            ads_count: count || 0,
+          }
+        })
+      )
+      setUsersList(usersWithAds)
+    }
+
+    setFetching(false)
+  }
+
+  useEffect(() => {
     fetchData()
   }, [])
 
@@ -65,13 +97,46 @@ export default function SuperAdminDashboard() {
     }
   }
 
-  // Profile Picture Change Handler
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       setAvatarFile(file)
       setAvatarPreview(URL.createObjectURL(file))
     }
+  }
+
+  // Update User Role Handler
+  const handleRoleChange = async (id: string, newRole: string) => {
+    setActionLoading(id)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', id)
+
+    if (!error) {
+      setUsersList((prev) =>
+        prev.map((user) => (user.id === id ? { ...user, role: newRole } : user))
+      )
+      alert('User role updated successfully!')
+    } else {
+      alert(`Failed to update role: ${error.message}`)
+    }
+    setActionLoading(null)
+  }
+
+  // Delete User Profile Handler
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this user profile?')) return
+
+    setActionLoading(id)
+    const { error } = await supabase.from('profiles').delete().eq('id', id)
+
+    if (!error) {
+      setUsersList((prev) => prev.filter((user) => user.id !== id))
+    } else {
+      alert(`Failed to delete user: ${error.message}`)
+    }
+    setActionLoading(null)
   }
 
   const handleSave = async (e: React.FormEvent) => {
@@ -81,7 +146,6 @@ export default function SuperAdminDashboard() {
     let logoUrl = logoPreview
     let avatarUrl = avatarPreview
 
-    // 1. Upload Logo if changed
     if (logoFile) {
       const fileExt = logoFile.name.split('.').pop()
       const fileName = `logo_${Date.now()}.${fileExt}`
@@ -104,7 +168,6 @@ export default function SuperAdminDashboard() {
       logoUrl = publicUrlData.publicUrl
     }
 
-    // 2. Upload Avatar if changed
     if (avatarFile) {
       const fileExt = avatarFile.name.split('.').pop()
       const fileName = `avatar_${Date.now()}.${fileExt}`
@@ -127,7 +190,6 @@ export default function SuperAdminDashboard() {
       avatarUrl = publicUrlData.publicUrl
     }
 
-    // 3. Update database
     const { error } = await supabase
       .from('settings')
       .update({
@@ -135,7 +197,7 @@ export default function SuperAdminDashboard() {
         primary_color: primaryColor,
         contact_number: contactNumber,
         logo_url: logoUrl,
-        admin_avatar_url: avatarUrl, // Database එකේ මේ column නම තියෙන බව තහවුරු කරගන්න
+        admin_avatar_url: avatarUrl,
         updated_at: new Date(),
       })
       .eq('id', 1)
@@ -150,13 +212,20 @@ export default function SuperAdminDashboard() {
     }
   }
 
+  // Filtered Users for Search
+  const filteredUsers = usersList.filter(
+    (user) =>
+      (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  )
+
   if (fetching) {
     return <div className="text-center py-20 font-bold text-gray-600">Loading Super Admin Dashboard...</div>
   }
 
   return (
     <main className="min-h-screen bg-gray-100 py-10 px-4">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-8">
         
         {/* Top Header */}
         <div className="bg-white p-8 rounded-3xl border shadow-xl flex items-center justify-between">
@@ -164,15 +233,114 @@ export default function SuperAdminDashboard() {
             <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
               <ShieldAlert className="w-8 h-8 text-orange-600" /> Super Admin Control Center
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Manage profile picture, platform branding, footer contact number, and reports.</p>
+            <p className="text-sm text-gray-500 mt-1">Manage profile picture, platform branding, footer contact number, users, and reports.</p>
           </div>
-          {/* Profile Avatar Display on Header */}
           <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-gray-100 flex items-center justify-center">
             {avatarPreview ? (
               <img src={avatarPreview} alt="Admin Profile" className="w-full h-full object-cover" />
             ) : (
               <User className="w-8 h-8 text-gray-400" />
             )}
+          </div>
+        </div>
+
+        {/* User Management Section */}
+        <div className="bg-white p-8 rounded-3xl border shadow-xl space-y-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Users className="w-6 h-6 text-orange-600" /> Manage Registered Users & Roles
+              </h2>
+              <p className="text-sm text-gray-500">View user accounts, change roles (Admin / User), and monitor postings.</p>
+            </div>
+            <button
+              onClick={fetchData}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition"
+            >
+              <RefreshCw className="w-4 h-4" /> Refresh Users
+            </button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+            />
+          </div>
+
+          {/* Users Table */}
+          <div className="overflow-x-auto border rounded-2xl">
+            <table className="w-full text-left border-collapse text-sm text-gray-700">
+              <thead>
+                <tr className="bg-gray-50 border-b text-xs uppercase text-gray-600">
+                  <th className="p-4">User</th>
+                  <th className="p-4">Email</th>
+                  <th className="p-4 text-center">Role</th>
+                  <th className="p-4 text-center">Total Ads</th>
+                  <th className="p-4">Joined Date</th>
+                  <th className="p-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y text-gray-900">
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="p-4">
+                        <div className="font-semibold">{user.full_name || 'Anonymous User'}</div>
+                        <div className="text-xs text-gray-400 font-mono">ID: {user.id.substring(0, 8)}...</div>
+                      </td>
+                      <td className="p-4 text-gray-600">
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-gray-400" />
+                          <span>{user.email || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td className="p-4 text-center">
+                        <select
+                          value={user.role || 'user'}
+                          onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                          disabled={actionLoading === user.id}
+                          className="bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-2.5 py-1.5 font-medium focus:ring-orange-500 focus:border-orange-500"
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className="inline-block bg-orange-50 text-orange-700 font-bold px-2.5 py-1 rounded-full text-xs">
+                          {user.ads_count} Ads
+                        </span>
+                      </td>
+                      <td className="p-4 text-gray-500 text-xs">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                        </div>
+                      </td>
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          disabled={actionLoading === user.id}
+                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                          title="Delete User"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-gray-400">No users found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 

@@ -11,6 +11,7 @@ interface UserProfile {
   email?: string
   full_name?: string
   created_at: string
+  role?: string // Role එක සඳහා අගය එකතු කරන ලදී
   ads_count?: number
 }
 
@@ -31,7 +32,6 @@ export default function ManageUsersPage() {
       .order('created_at', { ascending: false })
 
     if (!error && profiles) {
-      // Optional: Fetch ad counts per user
       const usersWithAds = await Promise.all(
         profiles.map(async (user) => {
           const { count } = await supabase
@@ -53,6 +53,25 @@ export default function ManageUsersPage() {
   useEffect(() => {
     fetchUsers()
   }, [])
+
+  // Update User Role Function
+  const handleRoleChange = async (id: string, newRole: string) => {
+    setActionLoading(id)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', id)
+
+    if (!error) {
+      setUsers((prev) =>
+        prev.map((user) => (user.id === id ? { ...user, role: newRole } : user))
+      )
+      alert('User role updated successfully!')
+    } else {
+      alert(`Failed to update role: ${error.message}`)
+    }
+    setActionLoading(null)
+  }
 
   // Delete User Profile
   const handleDeleteUser = async (id: string) => {
@@ -83,7 +102,7 @@ export default function ManageUsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Manage Registered Users</h1>
           <p className="text-gray-500 text-sm mt-1">
-            View user accounts, registration details, and posted ads count.
+            View user accounts, registration details, roles, and posted ads count.
           </p>
         </div>
         <button
@@ -123,9 +142,10 @@ export default function ManageUsersPage() {
                 <tr>
                   <th className="p-4">User</th>
                   <th className="p-4">Email</th>
+                  <th className="p-4 text-center">Role</th>
                   <th className="p-4 text-center">Total Ads</th>
                   <th className="p-4">Joined Date</th>
-                  <th className="p-4 text-center">Action</th>
+                  <th className="p-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -142,6 +162,17 @@ export default function ManageUsersPage() {
                         <Mail className="w-3.5 h-3.5 text-gray-400" />
                         <span>{user.email || 'N/A'}</span>
                       </div>
+                    </td>
+                    <td className="p-4 text-center">
+                      <select
+                        value={user.role || 'user'}
+                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                        disabled={actionLoading === user.id}
+                        className="bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-2.5 py-1.5 focus:ring-orange-500 focus:border-orange-500 font-medium"
+                      >
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                      </select>
                     </td>
                     <td className="p-4 text-center">
                       <span className="inline-block bg-orange-50 text-orange-700 font-bold px-2.5 py-1 rounded-full text-xs">
