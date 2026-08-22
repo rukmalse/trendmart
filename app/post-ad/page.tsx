@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { PlusCircle, Upload, X, Store } from 'lucide-react'
@@ -34,7 +34,7 @@ const categories = [
   { id: 'work-overseas', name: 'Work Overseas' },
 ];
 
-export default function PostAdPage() {
+function PostAdForm() {
   const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -64,7 +64,6 @@ export default function PostAdPage() {
     const fetchUserStores = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        // 👇 මෙහි 'name' වෙනුවට 'store_name' ලෙස නිවැරදි කරන ලදී
         const { data: stores } = await supabase
           .from('stores')
           .select('id, store_name')
@@ -215,7 +214,7 @@ export default function PostAdPage() {
               <option value="">-- No Store (Independent Ad) --</option>
               {userStores.map((store) => (
                 <option key={store.id} value={store.id}>
-                  {store.store_name} {/* 👇 මෙහි 'store.name' වෙනුවට 'store.store_name' ලෙස නිවැරදි කරන ලදී */}
+                  {store.store_name}
                 </option>
               ))}
             </select>
@@ -392,5 +391,13 @@ export default function PostAdPage() {
         </form>
       </div>
     </main>
+  )
+}
+
+export default function PostAdPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">Loading...</div>}>
+      <PostAdForm />
+    </Suspense>
   )
 }
