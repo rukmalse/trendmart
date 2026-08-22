@@ -45,7 +45,7 @@ export default function HomePage() {
   const [allAds, setAllAds] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
-  const [homeBgUrl, setHomeBgUrl] = useState<string>('') // Background image state
+  const [homeBgUrl, setHomeBgUrl] = useState<string>('') 
   
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -55,6 +55,7 @@ export default function HomePage() {
   const [selectedCondition, setSelectedCondition] = useState<string>('all')
   const [favorites, setFavorites] = useState<string[]>([])
 
+  // ඩිෆෝල්ට් ලොකේෂන් එක ලෙස කොළඹ (6.9271, 79.8612) තබා, පසුව Live GPS මඟින් එය අප්ඩේට් කරනු ලැබේ
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>({ lat: 6.9271, lng: 79.8612 })
   const [isLocating, setIsLocating] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -103,10 +104,47 @@ export default function HomePage() {
         setLoading(false)
       }
 
-      fetchNearbyServices(userLocation.lat, userLocation.lng)
+      // 3. Get User Live Location via Browser Geolocation API
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const currentLat = position.coords.latitude;
+            const currentLng = position.coords.longitude;
+            setUserLocation({ lat: currentLat, lng: currentLng });
+            fetchNearbyServices();
+          },
+          (error) => {
+            console.warn("Geolocation permission denied or error:", error.message);
+            fetchNearbyServices(); // ඩිෆෝල්ට් ලොකේෂන් එකෙන් ෆෙච් කරගනී
+          },
+          { enableHighAccuracy: true }
+        )
+      } else {
+        fetchNearbyServices();
+      }
     }
     initData()
   }, [])
+
+  // සේවාවන් ලබා ගැනීමට සාමාන්‍ය Select Query එකක් භාවිත කිරීම (RPC දෝෂ මඟහරවා ගැනීමට)
+  const fetchNearbyServices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('service_providers')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error("Fetch services error:", error.message)
+        setServices([])
+      } else {
+        setServices(data || [])
+      }
+    } catch (e) {
+      console.error("Error:", e)
+      setServices([])
+    }
+  }
 
   const toggleFavorite = (e: React.MouseEvent, adId: string) => {
     e.preventDefault()
@@ -121,16 +159,7 @@ export default function HomePage() {
     localStorage.setItem('trendmart_favorites', JSON.stringify(updatedFavs))
   }
 
-  const fetchNearbyServices = async (lat: number, lng: number) => {
-    try {
-      const { data } = await supabase.rpc('get_nearby_service_providers', { user_lat: lat, user_lng: lng, radius_km: 50 })
-      setServices(data || [])
-    } catch (e) {
-      console.error("RPC Error:", e)
-    }
-  }
-
-  // Filtering Logic
+  // Filtering Logic for Ads
   const filteredAds = allAds.filter((ad) => {
     if (selectedCategory && ad.category_id !== selectedCategory) {
       return false
@@ -174,7 +203,6 @@ export default function HomePage() {
           backgroundImage: homeBgUrl ? `url(${homeBgUrl})` : undefined
         }}
       >
-        {/* Fallback gradient if no background image is set */}
         {!homeBgUrl && <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-800"></div>}
 
         <div className="relative max-w-4xl mx-auto text-center z-10">
@@ -284,15 +312,21 @@ export default function HomePage() {
             <LocationMap center={userLocation} locations={services} />
           </div>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {services.map((service) => (
-              <div key={service.id} className="bg-white p-5 rounded-2xl border shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-1">{service.business_name}</h3>
-                <p className="text-xs text-gray-500 mb-3">{service.address}</p>
-                <a href={`tel:${service.phone}`} className="w-full bg-green-600 text-white font-bold py-2.5 rounded-xl flex items-center justify-center text-sm">
-                  <Phone className="w-4 h-4 mr-2" /> Call {service.phone}
-                </a>
+            {services.length === 0 ? (
+              <div className="col-span-full py-12 text-center text-gray-400 text-sm">
+                කිසිදු සේවාවක් හමු නොවීය.
               </div>
-            ))}
+            ) : (
+              services.map((service) => (
+                <div key={service.id} className="bg-white p-5 rounded-2xl border shadow-sm">
+                  <h3 className="font-bold text-lg text-gray-900 mb-1">{service.business_name}</h3>
+                  <p className="text-xs text-gray-500 mb-3">{service.address}</p>
+                  <a href={`tel:${service.phone}`} className="w-full bg-green-600 text-white font-bold py-2.5 rounded-xl flex items-center justify-center text-sm">
+                    <Phone className="w-4 h-4 mr-2" /> Call {service.phone}
+                  </a>
+                </div>
+              ))
+            )}
           </div>
         </section>
       )}

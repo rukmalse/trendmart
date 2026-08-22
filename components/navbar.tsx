@@ -13,9 +13,8 @@ export default function Navbar() {
   const [userRole, setUserRole] = useState<string>('customer')
   const [avatarUrl, setAvatarUrl] = useState<string>('') 
   const [loading, setLoading] = useState(true)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false) // 👈 Mobile Menu Toggle සඳහා State එක
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // Site Settings State (Logo, Name, Primary Color)
   const [siteSettings, setSiteSettings] = useState({
     site_name: 'Trend Mart',
     logo_url: '',
@@ -170,8 +169,8 @@ export default function Navbar() {
             )
           )}
 
-          <Link href="/post-job" className="text-xs font-bold px-3 py-2 rounded-xl border transition" style={{ color: siteSettings.primary_color, backgroundColor: `${siteSettings.primary_color}10`, borderColor: `${siteSettings.primary_color}30` }}>
-            + Post Job
+          <Link href="/post-service" className="text-xs font-bold px-3 py-2 rounded-xl border transition" style={{ color: siteSettings.primary_color, backgroundColor: `${siteSettings.primary_color}10`, borderColor: `${siteSettings.primary_color}30` }}>
+            + Post Service
           </Link>
 
           <Link href="/post-ad" className="text-xs font-bold text-white px-4 py-2 rounded-xl shadow transition" style={{ backgroundColor: siteSettings.primary_color }}>
@@ -179,7 +178,7 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* 4. Mobile Menu Toggle & Quick Buttons (Mobile Screens) */}
+        {/* 4. Mobile Menu Toggle & Quick Buttons */}
         <div className="flex md:hidden items-center space-x-2">
           <Link 
             href="/post-ad" 
@@ -198,7 +197,7 @@ export default function Navbar() {
 
       </div>
 
-      {/* 5. Mobile Dropdown Menu (Open when Hamburger clicked) */}
+      {/* 5. Mobile Dropdown Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-b px-4 pt-2 pb-6 space-y-3 shadow-lg">
           <Link 
@@ -216,11 +215,11 @@ export default function Navbar() {
             Manpower & Jobs
           </Link>
           <Link 
-            href="/post-job" 
+            href="/post-service" 
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-bold text-orange-600 border-b"
           >
-            + Post a Job
+            + Post a Service
           </Link>
 
           {!loading && (
