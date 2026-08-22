@@ -1,37 +1,73 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase URL සහ Key ලබා ගැනීම
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-// සේවා කටයුතු සඳහා Service Role Key වඩාත් සුදුසු වේ (එය නොමැති නම් Anon Key භාවිතා වේ)
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-
-// සේවාදායක පැත්තේ (Server-side) ක්‍රියාත්මක වීමට Supabase Client එක සෑදීම
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export async function POST(request: Request) {
   try {
     // 1. අවශ්‍ය සංඛ්‍යාලේඛන (Stats) ඩේටා ලබා ගැනීම
-    const { count: totalAds } = await supabase.from('ads').select('*', { count: 'exact', head: true })
+    const { count: newAds } = await supabase.from('ads').select('*', { count: 'exact', head: true })
     const { count: pendingAds } = await supabase.from('ads').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-    const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true })
+    const { count: newUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true })
 
-    const startOfToday = new Date()
-    startOfToday.setHours(0, 0, 0, 0)
-    const todayIso = startOfToday.toISOString()
+    const ADMIN_EMAIL = 'rukmalsenanayake418@gmail.com'
+    const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
 
-    const { count: todayAds } = await supabase.from('ads').select('*', { count: 'exact', head: true }).gte('created_at', todayIso)
-    const { count: todayUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', todayIso)
+    // 2. Email HTML Body එක සකස් කිරීම
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+        <h2 style="color: #ea580c;">TrendMart - Daily Summary Report</h2>
+        <p>Here is the overview report requested from Admin Dashboard:</p>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+          <tr style="background: #f3f4f6;">
+            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Metric</th>
+            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Count</th>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #ddd;">Total Ads</td>
+            <td style="padding: 10px; border: 1px solid #ddd;"><b>${newAds || 0}</b></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #ddd;">Pending Approvals</td>
+            <td style="padding: 10px; border: 1px solid #ddd; color: #d97706;"><b>${pendingAds || 0}</b></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #ddd;">Total Users</td>
+            <td style="padding: 10px; border: 1px solid #ddd;"><b>${newUsers || 0}</b></td>
+          </tr>
+        </table>
+        <br/>
+        <a href="https://trendmart.lk/admin/reports" style="background: #2563eb; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px; display: inline-block;">Open Admin Dashboard</a>
+      </div>
+    `
 
-    // 2. මෙහිදී ඔබට Resend හෝ Nodemailer වැනි සේවාවක් භාවිතයෙන් ඊමේල් එකක් යැවීමේ කේතය ලිවිය හැක.
-    // දැනට ඩේටා සාර්ථකව ලැබුණු බවට රෙස්පොන්ස් එකක් යවනු ලැබේ:
+    // 3. Resend API එක හරහා ඊමේල් එක යැවීම
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: 'TrendMart Reports <onboarding@resend.dev>',
+        to: [ADMIN_EMAIL],
+        subject: `📊 TrendMart Daily Report - ${new Date().toLocaleDateString()}`,
+        html: htmlBody,
+      }),
+    })
 
-    console.log("Daily Report Data Generated:", { totalAds, pendingAds, totalUsers, todayAds, todayUsers })
+    const resendData = await res.json()
+
+    if (!res.ok) {
+      throw new Error(resendData.message || 'Failed to send email via Resend')
+    }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Daily report processed successfully!',
-      data: { totalAds, pendingAds, totalUsers, todayAds, todayUsers }
+      message: 'Daily report sent successfully via email!',
+      data: resendData
     })
 
   } catch (error: any) {
