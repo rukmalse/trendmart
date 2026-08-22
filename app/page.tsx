@@ -89,7 +89,7 @@ export default function HomePage() {
           setCategories(uniqueCategories)
         }
 
-        // 2. Fetch Ads (👉 Admin අනුමත කළ [active] Ads පමණක් ලබා ගැනීමට මෙහි .eq('status', 'active') ලෙස වෙනස් කරන ලදී)
+        // 2. Fetch Ads (Active only)
         const { data: adsData, error: adsError } = await supabase
           .from('ads')
           .select('*')
@@ -414,22 +414,36 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {filteredAds.map((ad) => (
-                <Link key={ad.id} href={`/ads/${ad.id}`} className="block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition">
-                  <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {ad.images && ad.images.length > 0 ? (
-                      <img src={ad.images[0]} alt={ad.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-gray-400 text-xs">No Image</span>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-gray-900 line-clamp-1">{ad.title}</h3>
-                    <p className="text-orange-600 font-black text-lg my-1">LKR {Number(ad.price || 0).toLocaleString()}</p>
-                    <div className="text-xs text-gray-500 mt-2">📍 {ad.city || 'Sri Lanka'}</div>
-                  </div>
-                </Link>
-              ))}
+              {filteredAds.map((ad) => {
+                const isFavorite = favorites.includes(ad.id)
+
+                return (
+                  <Link key={ad.id} href={`/ads/${ad.id}`} className="block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition group relative">
+                    <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden relative">
+                      {ad.images && ad.images.length > 0 ? (
+                        <img src={ad.images[0]} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                      ) : (
+                        <span className="text-gray-400 text-xs">No Image</span>
+                      )}
+
+                      {/* ❤️ Heart Button */}
+                      <button 
+                        onClick={(e) => toggleFavorite(e, ad.id)}
+                        className="absolute top-3 right-3 z-20 p-2 bg-white/90 backdrop-blur-md rounded-full shadow-md hover:bg-white transition"
+                        title="Save to Wishlist"
+                      >
+                        <Heart className={`w-4 h-4 transition ${isFavorite ? 'text-red-500 fill-red-500' : 'text-gray-600 hover:text-red-500'}`} />
+                      </button>
+                    </div>
+
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-900 line-clamp-1">{ad.title}</h3>
+                      <p className="text-orange-600 font-black text-lg my-1">LKR {Number(ad.price || 0).toLocaleString()}</p>
+                      <div className="text-xs text-gray-500 mt-2">📍 {ad.city || 'Sri Lanka'}</div>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </section>
