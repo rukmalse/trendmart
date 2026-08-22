@@ -42,12 +42,12 @@ export default function AdminMainDashboard() {
     fetchPendingAds()
   }, [])
 
-  // 2. Approve or Reject Ad
-  const handleUpdateStatus = async (id: string, status: 'approved' | 'rejected') => {
+  // 2. Approve or Reject Ad (Approve කරන විට 'active' ලෙස ඩේටාබේස් එකට යැවීමට සකස් කර ඇත)
+  const handleUpdateStatus = async (id: string, actionType: 'active' | 'rejected') => {
     setActionLoading(id)
     const { error } = await supabase
       .from('ads')
-      .update({ status })
+      .update({ status: actionType })
       .eq('id', id)
 
     if (!error) {
@@ -129,7 +129,6 @@ export default function AdminMainDashboard() {
                 {pendingAds.map((ad) => (
                   <tr key={ad.id} className="hover:bg-gray-50/50 transition">
                     <td className="p-4">
-                      {/* මෙහිදී ad නම මත ක්ලික් කළ විට Ad එක බලාගත හැකි වන සේ Link එකක් එකතු කර ඇත */}
                       <Link 
                         href={`/ads/${ad.id}`} 
                         target="_blank"
@@ -149,9 +148,9 @@ export default function AdminMainDashboard() {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-center gap-2">
-                        {/* Approve Button */}
+                        {/* Approve Button (Status එක 'active' ලෙස යවයි) */}
                         <button
-                          onClick={() => handleUpdateStatus(ad.id, 'approved')}
+                          onClick={() => handleUpdateStatus(ad.id, 'active')}
                           disabled={actionLoading === ad.id}
                           className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition"
                           title="Approve Ad"

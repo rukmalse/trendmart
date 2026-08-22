@@ -9,7 +9,7 @@ import {
   Search, MapPin, Navigation, Star, Phone, Tag, 
   Car, Home, Building2, Smartphone, Tv, Flower2, Dog, 
   Tractor, Wrench, Shirt, Trophy, Factory, GraduationCap, 
-  ShoppingBag, Briefcase, Globe2, X, Award, Heart
+  ShoppingBag, Briefcase, Globe2, X, Award, Heart, Store, ArrowRight
 } from 'lucide-react'
 
 const sriLankaDistricts = [
@@ -45,6 +45,7 @@ export default function HomePage() {
   const [allAds, setAllAds] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
+  const [stores, setStores] = useState<any[]>([]) 
   const [homeBgUrl, setHomeBgUrl] = useState<string>('') 
   
   const [searchQuery, setSearchQuery] = useState('')
@@ -55,7 +56,6 @@ export default function HomePage() {
   const [selectedCondition, setSelectedCondition] = useState<string>('all')
   const [favorites, setFavorites] = useState<string[]>([])
 
-  // ඩිෆෝල්ට් ලොකේෂන් එක ලෙස කොළඹ (6.9271, 79.8612) තබා, පසුව Live GPS මඟින් එය අප්ඩේට් කරනු ලැබේ
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>({ lat: 6.9271, lng: 79.8612 })
   const [isLocating, setIsLocating] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -89,8 +89,12 @@ export default function HomePage() {
           setCategories(uniqueCategories)
         }
 
-        // 2. Fetch Ads
-        const { data: adsData, error: adsError } = await supabase.from('ads').select('*')
+        // 2. Fetch Ads (👉 Admin අනුමත කළ [active] Ads පමණක් ලබා ගැනීමට මෙහි .eq('status', 'active') ලෙස වෙනස් කරන ලදී)
+        const { data: adsData, error: adsError } = await supabase
+          .from('ads')
+          .select('*')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
 
         if (adsError) {
           console.error('Ads fetch error:', adsError.message)
@@ -98,13 +102,27 @@ export default function HomePage() {
         } else {
           setAllAds(adsData || [])
         }
+
+        // 3. Fetch Stores
+        const { data: storesData, error: storesError } = await supabase
+          .from('stores')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (storesError) {
+          console.error('Stores fetch error:', storesError.message)
+          setStores([])
+        } else {
+          setStores(storesData || [])
+        }
+
       } catch (err) {
         console.error('Error:', err)
       } finally {
         setLoading(false)
       }
 
-      // 3. Get User Live Location via Browser Geolocation API
+      // 4. Get User Live Location
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -115,7 +133,7 @@ export default function HomePage() {
           },
           (error) => {
             console.warn("Geolocation permission denied or error:", error.message);
-            fetchNearbyServices(); // ඩිෆෝල්ට් ලොකේෂන් එකෙන් ෆෙච් කරගනී
+            fetchNearbyServices();
           },
           { enableHighAccuracy: true }
         )
@@ -126,7 +144,6 @@ export default function HomePage() {
     initData()
   }, [])
 
-  // සේවාවන් ලබා ගැනීමට සාමාන්‍ය Select Query එකක් භාවිත කිරීම (RPC දෝෂ මඟහරවා ගැනීමට)
   const fetchNearbyServices = async () => {
     try {
       const { data, error } = await supabase
@@ -159,7 +176,6 @@ export default function HomePage() {
     localStorage.setItem('trendmart_favorites', JSON.stringify(updatedFavs))
   }
 
-  // Filtering Logic for Ads
   const filteredAds = allAds.filter((ad) => {
     if (selectedCategory && ad.category_id !== selectedCategory) {
       return false
@@ -264,6 +280,60 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Featured Stores Section */}
+      {activeTab === 'classifieds' && stores.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 pt-10">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight text-gray-900">Featured Stores & Shops</h2>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">Explore trusted businesses and services on TrendMart</p>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {stores.map((store) => (
+              <Link 
+                key={store.id}
+                href={`/stores/${store.slug}`}
+                className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden border border-blue-100 shrink-0">
+                      {store.logo_url ? (
+                        <img src={store.logo_url} alt={store.store_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Store className="w-6 h-6 text-blue-600" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition line-clamp-1">
+                        {store.store_name}
+                      </h3>
+                      {store.district && (
+                        <p className="text-xs text-gray-500 flex items-center mt-0.5">
+                          <MapPin className="w-3 h-3 mr-1 text-gray-400" /> {store.district}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {store.description && (
+                    <p className="text-xs text-gray-600 line-clamp-2 mb-4">
+                      {store.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-blue-600">
+                  <span>Visit Store</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Categories Section */}
       {activeTab === 'classifieds' && (
         <section className="max-w-7xl mx-auto px-4 py-10">
@@ -340,7 +410,7 @@ export default function HomePage() {
             <div className="py-12 text-center text-gray-400 text-sm">Loading products...</div>
           ) : filteredAds.length === 0 ? (
             <div className="bg-white p-12 text-center rounded-3xl border shadow-sm">
-              <p className="text-gray-500 font-semibold text-sm mb-2">ප්‍රදර්ශනය කිරීමට දැන්වීම් කිහිපයක් හෝ හමු නොවීය.</p>
+              <p className="text-gray-500 font-semibold text-sm mb-2">ප්‍රදර්ශනය කිරීමට අනුමත කරන ලද දැන්වීම් කිහිපයක් හමු නොවීය.</p>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">

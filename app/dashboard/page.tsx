@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Tag, Trash2, Eye, RefreshCw, Edit, Zap, User, Mail, Phone, MapPin, Heart, Save, Loader2, Camera } from 'lucide-react'
+import { ArrowLeft, Plus, Tag, Trash2, Eye, RefreshCw, Edit, Zap, User, Mail, Phone, MapPin, Heart, Save, Loader2, Camera, Store } from 'lucide-react'
 
 export default function DashboardPage() {
   const supabase = createClient()
@@ -12,9 +12,11 @@ export default function DashboardPage() {
 
   const [user, setUser] = useState<any>(null)
   const [ads, setAds] = useState<any[]>([])
+  const [stores, setStores] = useState<any[]>([]) // 👈 Stores state එක
   const [categoriesMap, setCategoriesMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deletingStoreId, setDeletingStoreId] = useState<string | null>(null) // 👈 Store delete state එක
   const [bumpingId, setBumpingId] = useState<string | null>(null)
 
   // Profile Editable Fields & Avatar
@@ -76,6 +78,19 @@ export default function DashboardPage() {
       console.error('Error fetching user ads:', adsError.message)
     } else {
       setAds(userAds || [])
+    }
+
+    // 3.1 Current User ගේ Stores ලබාගැනීම 👈
+    const { data: userStores, error: storesError } = await supabase
+      .from('stores')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+
+    if (storesError) {
+      console.error('Error fetching user stores:', storesError.message)
+    } else {
+      setStores(userStores || [])
     }
 
     // 4. Load Saved Ads from localStorage
@@ -205,6 +220,28 @@ export default function DashboardPage() {
     setDeletingId(null)
   }
 
+  // Store එක Delete කිරීම 👈
+  const handleDeleteStore = async (storeId: string) => {
+    const confirmDelete = window.confirm('ඔබට විශ්වාසද මෙම Store එක ඉවත් කිරීමට අවශ්‍ය බව?')
+    if (!confirmDelete) return
+
+    setDeletingStoreId(storeId)
+
+    const { error } = await supabase
+      .from('stores')
+      .delete()
+      .eq('id', storeId)
+
+    if (error) {
+      alert('Store එක delete කිරීමට නොහැකි විය: ' + error.message)
+    } else {
+      setStores(prevStores => prevStores.filter(store => store.id !== storeId))
+      alert('Store එක සාර්ථකව ඉවත් කළා!')
+    }
+
+    setDeletingStoreId(null)
+  }
+
   // Active / Deactivated තත්ත්වය වෙනස් කිරීම
   const toggleStatus = async (adId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'deactivated' : 'active'
@@ -277,6 +314,15 @@ export default function DashboardPage() {
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
+
+            {/* Create Store Button */}
+            <Link
+              href="/stores/create"
+              className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl shadow text-xs sm:text-sm transition gap-1.5"
+            >
+              <Store className="w-4 h-4" /> Create Store
+            </Link>
+            
             <Link
               href="/post-ad"
               className="inline-flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl shadow text-sm transition"
@@ -286,7 +332,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Main Grid: Profile Settings (Left) & Ads Management (Right) */}
+        {/* Main Grid: Profile Settings (Left) & Ads/Stores Management (Right) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
           {/* Left Column: Edit Profile & Avatar Upload */}
@@ -383,11 +429,99 @@ export default function DashboardPage() {
             </form>
           </div>
 
-          {/* Right Column: Posted Ads & Saved Ads Management */}
+          {/* Right Column: Your Stores, Posted Ads & Saved Ads Management */}
           <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-sm md:col-span-2 space-y-10">
             
-            {/* 1. Your Posted Ads Section */}
+            {/* 0. Your Stores Section 👈 අලුතින් එකතු කළ කොටස */}
             <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Store className="w-5 h-5 text-blue-600" />
+                  Your Stores ({stores.length})
+                </h2>
+                <Link
+                  href="/stores/create"
+                  className="text-xs text-blue-600 hover:text-blue-700 font-bold transition flex items-center gap-1"
+                >
+                  + Create New Store
+                </Link>
+              </div>
+
+              {stores.length === 0 ? (
+                <div className="border-2 border-dashed border-gray-300 rounded-2xl py-8 px-4 text-center">
+                  <div className="w-10 h-10 bg-blue-50 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                    <Store className="w-5 h-5" />
+                  </div>
+                  <p className="text-gray-500 font-semibold text-xs mb-2">
+                    ඔබ තවමත් කිසිදු Store එකක් සාදා නැත.
+                  </p>
+                  <Link 
+                    href="/stores/create" 
+                    className="text-xs text-white bg-blue-600 hover:bg-blue-700 font-bold px-3 py-1.5 rounded-lg inline-block transition"
+                  >
+                    + Create Your Store
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {stores.map((store) => (
+                    <div key={store.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border p-4 rounded-2xl gap-4 hover:border-gray-300 transition bg-blue-50/20">
+                      
+                      {/* Store Logo & Details */}
+                      <div className="flex items-center space-x-4">
+                        <div className="relative w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border flex items-center justify-center">
+                          {store.logo_url ? (
+                            <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Store className="w-6 h-6 text-gray-400" />
+                          )}
+                        </div>
+
+                        <div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 uppercase">
+                            Store
+                          </span>
+                          <h3 className="font-bold text-gray-900 text-sm mt-1">{store.name}</h3>
+                          <p className="text-xs text-gray-500 truncate max-w-xs">{store.description || 'No description provided.'}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">📍 {store.city || 'Location not set'}</p>
+                        </div>
+                      </div>
+
+                      {/* Store Action Buttons */}
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+                        <Link
+                          href={`/stores/${store.slug || store.id}`}
+                          className="px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 border rounded-xl text-xs font-bold flex items-center transition gap-1"
+                          target="_blank"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Visit
+                        </Link>
+
+                        <Link
+                          href={`/stores/edit/${store.id}`}
+                          className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 rounded-xl text-xs font-bold flex items-center transition gap-1"
+                        >
+                          <Edit className="w-3.5 h-3.5" /> Edit
+                        </Link>
+
+                        <button
+                          onClick={() => handleDeleteStore(store.id)}
+                          disabled={deletingStoreId === store.id}
+                          className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-semibold flex items-center transition border border-red-100 disabled:opacity-50"
+                          title="Delete Store"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 1. Your Posted Ads Section */}
+            <div className="space-y-6 pt-6 border-t border-gray-100">
               <h2 className="text-xl font-bold text-gray-900">
                 Your Posted Ads ({ads.length})
               </h2>

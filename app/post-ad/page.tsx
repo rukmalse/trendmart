@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { PlusCircle, Upload, X } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { PlusCircle, Upload, X, Store } from 'lucide-react'
 
 // Sri Lanka Districts List (සම්පූර්ණ දිස්ත්‍රික්ක 25)
 const sriLankaDistricts = [
@@ -37,8 +37,13 @@ const categories = [
 export default function PostAdPage() {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  // URL එකෙන් store_id එක තිබේදැයි පරීක්ෂා කිරීම (උදා: /post-ad?store_id=xxx)
+  const prefilledStoreId = searchParams.get('store_id') || ''
 
   const [loading, setLoading] = useState(false)
+  const [userStores, setUserStores] = useState<any[]>([]) // පරිශීලකයාගේ Stores ලැයිස්තුව
 
   // Form States
   const [title, setTitle] = useState('')
@@ -48,10 +53,30 @@ export default function PostAdPage() {
   const [district, setDistrict] = useState('Colombo')
   const [city, setCity] = useState('')
   const [description, setDescription] = useState('')
+  const [selectedStoreId, setSelectedStoreId] = useState(prefilledStoreId)
 
   // Multi-Image Upload States (Up to 10 Images)
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+
+  // Page Load වන විට User ගේ Stores ලැයිස්තුව Fetch කර ගැනීම
+  useEffect(() => {
+    const fetchUserStores = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // 👇 මෙහි 'name' වෙනුවට 'store_name' ලෙස නිවැරදි කරන ලදී
+        const { data: stores } = await supabase
+          .from('stores')
+          .select('id, store_name')
+          .eq('user_id', user.id)
+        
+        if (stores) {
+          setUserStores(stores)
+        }
+      }
+    }
+    fetchUserStores()
+  }, [supabase])
 
   // Images Select කරන අවස්ථාව (Max 10 Validation)
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,13 +162,13 @@ export default function PostAdPage() {
       }
     }
 
-    // 4. සැබෑ UUID එක සමග Ad එක Database එකට Insert කිරීම
+    // 4. සැබෑ UUID සහ Store ID (තිබේ නම්) සමග Ad එක Database එකට Insert කිරීම
     const { error } = await supabase
       .from('ads')
       .insert([
         {
           user_id: user.id,
-          category_id: categoryUuid, // 👈 දැන් මෙහි නිවැරදි UUID අගය ඇතුළත් වේ
+          category_id: categoryUuid,
           title,
           description,
           price: parseFloat(price),
@@ -151,6 +176,7 @@ export default function PostAdPage() {
           district,
           city,
           images: uploadedImageUrls,
+          store_id: selectedStoreId ? selectedStoreId : null,
           status: 'pending',
         },
       ])
@@ -175,6 +201,26 @@ export default function PostAdPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           
+          {/* Link to Your Store (Optional Dropdown) */}
+          <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+            <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
+              <Store className="w-4 h-4 text-blue-600" /> Link to Your Store (Optional)
+            </label>
+            <p className="text-xs text-gray-500 mb-2">ඔබට අවශ්‍ය නම් මෙම Ad එක ඔබගේ ව්‍යාපාරික Store එක යටතේ ප්‍රදර්ශනය කළ හැක.</p>
+            <select
+              value={selectedStoreId}
+              onChange={(e) => setSelectedStoreId(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white"
+            >
+              <option value="">-- No Store (Independent Ad) --</option>
+              {userStores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.store_name} {/* 👇 මෙහි 'store.name' වෙනුවට 'store.store_name' ලෙස නිවැරදි කරන ලදී */}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Multi-Image Upload Box */}
           <div>
             <div className="flex justify-between items-center mb-2">
@@ -336,7 +382,6 @@ export default function PostAdPage() {
           </div>
 
           {/* Submit Button */}
-         {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
