@@ -222,6 +222,16 @@ export default function HomePage() {
         {!homeBgUrl && <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-800"></div>}
 
         <div className="relative max-w-4xl mx-auto text-center z-10">
+          
+          {/* Live Active Ads Count Badge */}
+          <div className="flex justify-center items-center mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-white/10 text-white border border-white/20 backdrop-blur-md shadow-sm">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping absolute"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 relative"></span>
+              🔥 <strong className="text-orange-300 ml-1">{allAds.length}</strong> Active Ads Live Across Sri Lanka
+            </span>
+          </div>
+
           <h1 className="text-3xl sm:text-5xl font-extrabold mb-3 tracking-tight">
             Buy, Sell or Find <span className="text-orange-400">Services Near You</span>
           </h1>
