@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Settings, Upload, Save, Palette, Phone, ShieldAlert, BarChart3, User, Users, Search, RefreshCw, Trash2, Calendar, Mail } from 'lucide-react'
+import { Settings, Upload, Save, Palette, Phone, ShieldAlert, BarChart3, User, Users, Search, RefreshCw, Trash2, Calendar, Mail, Image as ImageIcon } from 'lucide-react'
 
 export default function SuperAdminDashboard() {
   const supabase = createClient()
@@ -21,6 +21,10 @@ export default function SuperAdminDashboard() {
   // Profile Picture States
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState('')
+
+  // Home Background Image States
+  const [bgFile, setBgFile] = useState<File | null>(null)
+  const [bgPreview, setBgPreview] = useState('')
 
   // Report State
   const [reports, setReports] = useState<any[]>([])
@@ -47,6 +51,7 @@ export default function SuperAdminDashboard() {
       setContactNumber(settingsData.contact_number || '')
       setLogoPreview(settingsData.logo_url || '')
       setAvatarPreview(settingsData.admin_avatar_url || '')
+      setBgPreview(settingsData.home_bg_url || '')
     }
 
     // 2. Fetch Reports / Platform Data
@@ -105,6 +110,15 @@ export default function SuperAdminDashboard() {
     }
   }
 
+  // Home Background Image Change Handler
+  const handleBgChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setBgFile(file)
+      setBgPreview(URL.createObjectURL(file))
+    }
+  }
+
   // Update User Role Handler
   const handleRoleChange = async (id: string, newRole: string) => {
     setActionLoading(id)
@@ -145,6 +159,7 @@ export default function SuperAdminDashboard() {
 
     let logoUrl = logoPreview
     let avatarUrl = avatarPreview
+    let bgUrl = bgPreview
 
     if (logoFile) {
       const fileExt = logoFile.name.split('.').pop()
@@ -190,6 +205,29 @@ export default function SuperAdminDashboard() {
       avatarUrl = publicUrlData.publicUrl
     }
 
+    // Upload Home Background Image if changed
+    if (bgFile) {
+      const fileExt = bgFile.name.split('.').pop()
+      const fileName = `home_bg_${Date.now()}.${fileExt}`
+      const filePath = `settings/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('ad-images')
+        .upload(filePath, bgFile)
+
+      if (uploadError) {
+        alert('Background image upload failed: ' + uploadError.message)
+        setLoading(false)
+        return
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('ad-images')
+        .getPublicUrl(filePath)
+
+      bgUrl = publicUrlData.publicUrl
+    }
+
     const { error } = await supabase
       .from('settings')
       .update({
@@ -198,6 +236,7 @@ export default function SuperAdminDashboard() {
         contact_number: contactNumber,
         logo_url: logoUrl,
         admin_avatar_url: avatarUrl,
+        home_bg_url: bgUrl, // Updated Background URL
         updated_at: new Date(),
       })
       .eq('id', 1)
@@ -207,7 +246,7 @@ export default function SuperAdminDashboard() {
     if (error) {
       alert('Error updating settings: ' + error.message)
     } else {
-      alert('සුපර් ඇඩ්මින් ප්‍රොෆයිලය සහ සැකසුම් සාර්ථකව යාවත්කාලීන කරන ලදී!')
+      alert('සුපර් ඇඩ්මින් ප්‍රොෆයිලය, පසුබිම් රූපය සහ සැකසුම් සාර්ථකව යාවත්කාලීන කරන ලදී!')
       router.refresh()
     }
   }
@@ -233,7 +272,7 @@ export default function SuperAdminDashboard() {
             <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
               <ShieldAlert className="w-8 h-8 text-orange-600" /> Super Admin Control Center
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Manage profile picture, platform branding, footer contact number, users, and reports.</p>
+            <p className="text-sm text-gray-500 mt-1">Manage profile picture, home background image, platform branding, users, and reports.</p>
           </div>
           <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-gray-100 flex items-center justify-center">
             {avatarPreview ? (
@@ -371,6 +410,32 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
+            {/* Home Page Background Image Upload */}
+            <div className="bg-blue-50 p-6 rounded-2xl border-2 border-blue-200 space-y-3">
+              <label className="block text-sm font-bold text-blue-900 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-blue-600" /> Home Page Background Image (නිල් පාට වෙනුවට පින්තූරයක්)
+              </label>
+              <p className="text-xs text-blue-700">මෙමඟින් වෙබ් අඩවියේ මුල් පිටුවේ (Home Page) පසුබිම් රූපය වෙනස් කරගත හැක.</p>
+              
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                {bgPreview ? (
+                  <div className="w-32 h-20 border rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center shadow-inner">
+                    <img src={bgPreview} alt="Background Preview" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-32 h-20 border rounded-xl bg-gray-100 flex items-center justify-center text-xs text-gray-400 text-center p-2">
+                    No Background Image
+                  </div>
+                )}
+                
+                <label className="cursor-pointer bg-white border border-blue-300 hover:bg-blue-100 px-4 py-2.5 rounded-xl text-sm font-medium text-blue-800 flex items-center shadow-sm transition">
+                  <Upload className="w-4 h-4 mr-2 text-blue-600" />
+                  Upload Background Image
+                  <input type="file" accept="image/*" onChange={handleBgChange} className="hidden" />
+                </label>
+              </div>
+            </div>
+
             {/* Contact Number Field */}
             <div className="bg-orange-50 p-5 rounded-2xl border-2 border-orange-400 space-y-2 shadow-sm">
               <label className="text-sm font-bold text-orange-900 flex items-center">
@@ -437,7 +502,7 @@ export default function SuperAdminDashboard() {
                   type="text"
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="w-32 px-4 py-2.5 rounded-xl border text-sm uppercase font-mono text-gray-900 bg-white"
+                  className="w-32 px-4 py.5 rounded-xl border text-sm uppercase font-mono text-gray-900 bg-white"
                 />
               </div>
             </div>

@@ -45,6 +45,7 @@ export default function HomePage() {
   const [allAds, setAllAds] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
+  const [homeBgUrl, setHomeBgUrl] = useState<string>('') // Background image state
   
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -65,7 +66,18 @@ export default function HomePage() {
 
       setLoading(true)
       try {
-        // 1. Fetch Categories & Remove Duplicates (නැවත නැවත ඒම වැළැක්වීමට slug හෝ name මත unique කිරීම)
+        // 0. Fetch Settings for Background Image
+        const { data: settingsData } = await supabase
+          .from('settings')
+          .select('home_bg_url')
+          .eq('id', 1)
+          .single()
+
+        if (settingsData && settingsData.home_bg_url) {
+          setHomeBgUrl(settingsData.home_bg_url)
+        }
+
+        // 1. Fetch Categories & Remove Duplicates
         const { data: catData, error: catError } = await supabase.from('categories').select('*')
         if (catError) console.error('Category error:', catError.message)
         
@@ -156,8 +168,16 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-gray-50 text-gray-800">
       {/* Hero & Tabs */}
-      <section className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white py-14 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+      <section 
+        className="relative text-white py-14 px-4 bg-cover bg-center"
+        style={{
+          backgroundImage: homeBgUrl ? `url(${homeBgUrl})` : undefined
+        }}
+      >
+        {/* Fallback gradient if no background image is set */}
+        {!homeBgUrl && <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-800"></div>}
+
+        <div className="relative max-w-4xl mx-auto text-center z-10">
           <h1 className="text-3xl sm:text-5xl font-extrabold mb-3 tracking-tight">
             Buy, Sell or Find <span className="text-orange-400">Services Near You</span>
           </h1>
@@ -216,7 +236,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section (දැන් නැවත නැවත (Repeat) වීම වැළැක්වී ඇත) */}
+      {/* Categories Section */}
       {activeTab === 'classifieds' && (
         <section className="max-w-7xl mx-auto px-4 py-10">
           <div className="flex justify-between items-center mb-6">
