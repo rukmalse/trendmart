@@ -432,7 +432,7 @@ export default function DashboardPage() {
           {/* Right Column: Your Stores, Posted Ads & Saved Ads Management */}
           <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-sm md:col-span-2 space-y-10">
             
-            {/* 0. Your Stores Section 👈 අලුතින් එකතු කළ කොටස */}
+            {/* 0. Your Stores Section */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
