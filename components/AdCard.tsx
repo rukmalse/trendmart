@@ -2,7 +2,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MapPin, Heart } from 'lucide-react'
+import { MapPin, Heart, Zap } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 export default function AdCard({ ad }: { ad: any }) {
@@ -33,8 +33,17 @@ export default function AdCard({ ad }: { ad: any }) {
   return (
     <Link href={`/ads/${ad.id}`} className="bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md transition relative block group">
       
-      {/* Product Image Container (Relative කර ඇත, එවිට Heart එක පින්තූරය මත හරියටම වාඩි වේ) */}
+      {/* Product Image Container (Relative කර ඇත, එවිට Bumped badge එක සහ Heart එක පින්තූරය මත හරියටම වාඩි වේ) */}
       <div className="aspect-square w-full bg-gray-200 rounded-xl mb-3 overflow-hidden relative">
+        
+        {/* ✨ උඩ වම් මුල්ලේ Bumped Badge එක */}
+        {ad.bump_status === 'approved' && (
+          <div className="absolute top-3 left-3 z-20 bg-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 backdrop-blur-md">
+            <Zap className="w-3.5 h-3.5 fill-white" />
+            Bumped
+          </div>
+        )}
+
         {ad.images && ad.images[0] ? (
           <img src={ad.images[0]} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
         ) : (

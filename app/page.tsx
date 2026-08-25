@@ -9,7 +9,7 @@ import {
   Search, MapPin, Navigation, Star, Phone, Tag, 
   Car, Home, Building2, Smartphone, Tv, Flower2, Dog, 
   Tractor, Wrench, Shirt, Trophy, Factory, GraduationCap, 
-  ShoppingBag, Briefcase, Globe2, X, Award, Heart, Store, ArrowRight, SlidersHorizontal
+  ShoppingBag, Briefcase, Globe2, X, Award, Heart, Store, ArrowRight, SlidersHorizontal, Zap
 } from 'lucide-react'
 
 const sriLankaDistricts = [
@@ -89,11 +89,12 @@ export default function HomePage() {
           setCategories(uniqueCategories)
         }
 
-        // 2. Fetch Ads (Active only)
+        // 2. Fetch Ads (Active only, with Bumped ads priority sorting)
         const { data: adsData, error: adsError } = await supabase
           .from('ads')
           .select('*')
           .eq('status', 'active')
+          .order('bumped_at', { ascending: false, nullsLast: true }) // ⚡ Bumped ads මුලින්ම පෙන්වීමට
           .order('created_at', { ascending: false })
 
         if (adsError) {
@@ -200,6 +201,13 @@ export default function HomePage() {
 
     return true
   }).sort((a, b) => {
+    // පළමුව Bumped අනුපිළිවෙල බලයි, ඉන්පසු පරිශීලකයා තෝරන Sort එක ක්‍රියාත්මක වේ
+    const aBumped = a.bump_status === 'approved' ? 1 : 0;
+    const bBumped = b.bump_status === 'approved' ? 1 : 0;
+    if (aBumped !== bBumped) {
+      return bBumped - aBumped;
+    }
+
     if (sortBy === 'newest') {
       return new Date(b.created_at || Date.now()).getTime() - new Date(a.created_at || Date.now()).getTime()
     } else if (sortBy === 'price_low') {
@@ -460,6 +468,15 @@ export default function HomePage() {
                 return (
                   <Link key={ad.id} href={`/ads/${ad.id}`} className="block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition group relative">
                     <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden relative">
+                      
+                      {/* ✨ උඩ වම් මුල්ලේ Bumped Badge එක */}
+                      {ad.bump_status === 'approved' && (
+                        <div className="absolute top-3 left-3 z-20 bg-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 backdrop-blur-md">
+                          <Zap className="w-3.5 h-3.5 fill-white" />
+                          Bumped
+                        </div>
+                      )}
+
                       {ad.images && ad.images.length > 0 ? (
                         <img src={ad.images[0]} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                       ) : (
