@@ -107,7 +107,7 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
       finalImageUrl = publicUrlData.publicUrl
     }
 
-    // Update Record
+    // Update Record with status 'pending' so it needs admin re-approval
     const { error } = await supabase
       .from('ads')
       .update({
@@ -119,6 +119,7 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
         district,
         city,
         images: finalImageUrl ? [finalImageUrl] : [],
+        status: 'pending', // 👈 මෙතැනින් Edit කළ පසු Ad එක නැවත Admin අනුමැතියට යොමු වේ
       })
       .eq('id', adId)
 
@@ -127,7 +128,7 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
     if (error) {
       alert('Error updating ad: ' + error.message)
     } else {
-      alert('ඔබගේ Ad එක සාර්ථකව Update කරන ලදී!')
+      alert('ඔබගේ Ad එක සාර්ථකව Update කරන ලදී! එය Admin අනුමැතියෙන් පසු නැවත වෙබ් අඩවියේ ප්‍රසිද්ධ වනු ඇත. ⏳')
       router.push('/dashboard')
     }
   }
@@ -153,7 +154,10 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
         <h1 className="text-2xl font-extrabold text-gray-900 mb-2 flex items-center">
           <Edit3 className="w-7 h-7 text-blue-600 mr-2" /> Edit Classified Ad
         </h1>
-        <p className="text-sm text-gray-500 mb-8">Update details for your listing.</p>
+        <p className="text-sm text-gray-500 mb-2">Update details for your listing.</p>
+        <p className="text-xs text-amber-600 font-semibold mb-8 bg-amber-50 p-3 rounded-xl border border-amber-200">
+          ⚠️ සටහන: දැන්වීම වෙනස් කළ පසු එය නැවත Admin අනුමැතිය සඳහා යොමු වන අතර, අනුමත වූ පසු Live වනු ඇත.
+        </p>
 
         <form onSubmit={handleUpdate} className="space-y-6">
           {/* Image Upload Box */}
@@ -298,7 +302,7 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
             disabled={saving}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition shadow-md disabled:opacity-50 text-sm"
           >
-            {saving ? 'Updating Ad...' : 'Save Changes'}
+            {saving ? 'Updating Ad...' : 'Save Changes & Request Approval'}
           </button>
         </form>
       </div>

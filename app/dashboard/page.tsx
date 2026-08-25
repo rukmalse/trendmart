@@ -12,11 +12,11 @@ export default function DashboardPage() {
 
   const [user, setUser] = useState<any>(null)
   const [ads, setAds] = useState<any[]>([])
-  const [stores, setStores] = useState<any[]>([]) // 👈 Stores state එක
+  const [stores, setStores] = useState<any[]>([])
   const [categoriesMap, setCategoriesMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [deletingStoreId, setDeletingStoreId] = useState<string | null>(null) // 👈 Store delete state එක
+  const [deletingStoreId, setDeletingStoreId] = useState<string | null>(null)
   const [bumpingId, setBumpingId] = useState<string | null>(null)
 
   // Profile Editable Fields & Avatar
@@ -38,7 +38,6 @@ export default function DashboardPage() {
     const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !currentUser) {
-      console.log('User not logged in, redirecting...')
       router.push('/login')
       return
     }
@@ -80,7 +79,7 @@ export default function DashboardPage() {
       setAds(userAds || [])
     }
 
-    // 3.1 Current User ගේ Stores ලබාගැනීම 👈
+    // 3.1 Current User ගේ Stores ලබාගැනීම
     const { data: userStores, error: storesError } = await supabase
       .from('stores')
       .select('*')
@@ -118,21 +117,17 @@ export default function DashboardPage() {
     loadUserDataAndAds()
   }, [])
 
-  // Remove Ad from Saved (Wishlist) in localStorage
   const handleRemoveSavedAd = (adId: string) => {
     try {
       const favorites = JSON.parse(localStorage.getItem('trendmart_favorites') || '[]')
       const updatedFavorites = favorites.filter((id: string) => id !== adId)
       localStorage.setItem('trendmart_favorites', JSON.stringify(updatedFavorites))
-      
-      // Update state
       setSavedAds(prev => prev.filter(ad => ad.id !== adId))
     } catch (e) {
       console.error(e)
     }
   }
 
-  // Handle Profile Picture Upload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const file = e.target.files?.[0]
@@ -143,23 +138,18 @@ export default function DashboardPage() {
       const fileName = `${user.id}-${Math.random()}.${fileExt}`
       const filePath = `${fileName}`
 
-      // Upload to Supabase Storage ('avatars' bucket)
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file)
 
-      if (uploadError) {
-        throw uploadError
-      }
+      if (uploadError) throw uploadError
 
-      // Get Public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath)
 
       setAvatarUrl(publicUrl)
       
-      // Automatically update in DB table
       await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl, updated_at: new Date() })
@@ -173,7 +163,6 @@ export default function DashboardPage() {
     }
   }
 
-  // Update Profile Function
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
@@ -198,7 +187,6 @@ export default function DashboardPage() {
     setUpdatingProfile(false)
   }
 
-  // Ad එක Delete කිරීම
   const handleDeleteAd = async (adId: string) => {
     const confirmDelete = window.confirm('ඔබට විශ්වාසද මෙම Ad එක ඉවත් කිරීමට අවශ්‍ය බව?')
     if (!confirmDelete) return
@@ -220,7 +208,6 @@ export default function DashboardPage() {
     setDeletingId(null)
   }
 
-  // Store එක Delete කිරීම 👈
   const handleDeleteStore = async (storeId: string) => {
     const confirmDelete = window.confirm('ඔබට විශ්වාසද මෙම Store එක ඉවත් කිරීමට අවශ්‍ය බව?')
     if (!confirmDelete) return
@@ -242,34 +229,42 @@ export default function DashboardPage() {
     setDeletingStoreId(null)
   }
 
-  // Active / Deactivated තත්ත්වය වෙනස් කිරීම
-  const toggleStatus = async (adId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'deactivated' : 'active'
+  // අලුත් ක්‍රමය: User විසින් ක්‍ෂණිකව Active කිරීම වෙනුවට Admin අනුමැතිය සඳහා Pending තත්ත්වයට ඉල්ලුම් කිරීම
+  const handleRequestApproval = async (adId: string) => {
+    const confirmApproval = window.confirm('ඔබට මෙම Ad එක නැවත Publish කිරීම සඳහා Admin අනුමැතියට යැවීමට අවශ්‍යද?')
+    if (!confirmApproval) return
+
+    setBumpingId(adId)
 
     const { error } = await supabase
       .from('ads')
-      .update({ status: newStatus })
+      .update({ status: 'pending' })
       .eq('id', adId)
 
     if (error) {
-      alert('තත්ත්වය වෙනස් කිරීමට නොහැකි විය: ' + error.message)
+      alert('ඉල්ලීම යැවීමට නොහැකි විය: ' + error.message)
     } else {
-      setAds(prevAds => prevAds.map(ad => ad.id === adId ? { ...ad, status: newStatus } : ad))
+      alert('ඔබගේ Ad එක Admin අනුමැතිය සඳහා යවන ලදී. Admin අනුමත කළ පසු එය Publish වනු ඇත.')
+      loadUserDataAndAds()
     }
+    setBumpingId(null)
   }
 
-  // Ad එක Bump කිරීම
   const handleBumpAd = async (adId: string) => {
+    const confirmBump = window.confirm('ඔබට මෙම Ad එක Bump කිරීමට අවශ්‍යද? (මෙය Admin අනුමැතියෙන් පසු ක්‍රියාත්මක වේ)')
+    if (!confirmBump) return
+
     setBumpingId(adId)
+    
     const { error } = await supabase
       .from('ads')
-      .update({ bumped_at: new Date().toISOString() })
+      .update({ bump_status: 'pending' })
       .eq('id', adId)
     
     if (error) {
-      alert('Bump කිරීමට නොහැකි විය: ' + error.message)
+      alert('Bump ඉල්ලීම යැවීමට නොහැකි විය: ' + error.message)
     } else {
-      alert('Ad එක සාර්ථකව Bump විය! දැන් එය ලැයිස්තුවේ මුලට පැමිණේ.')
+      alert('ඔබගේ Bump ඉල්ලීම සාර්ථකව Admin වෙත යවන ලදී!')
       loadUserDataAndAds()
     }
     setBumpingId(null)
@@ -315,7 +310,6 @@ export default function DashboardPage() {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
 
-            {/* Create Store Button */}
             <Link
               href="/stores/create"
               className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl shadow text-xs sm:text-sm transition gap-1.5"
@@ -332,10 +326,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Main Grid: Profile Settings (Left) & Ads/Stores Management (Right) */}
+        {/* Main Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
-          {/* Left Column: Edit Profile & Avatar Upload */}
+          {/* Left Column: Edit Profile */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 h-fit md:col-span-1">
             <div className="flex items-center gap-3 border-b pb-4">
               <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
@@ -347,7 +341,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Profile Picture Upload Section */}
             <div className="flex flex-col items-center justify-center space-y-3">
               <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-blue-500 bg-gray-100 flex items-center justify-center shadow-inner">
                 {avatarUrl ? (
@@ -429,10 +422,10 @@ export default function DashboardPage() {
             </form>
           </div>
 
-          {/* Right Column: Your Stores, Posted Ads & Saved Ads Management */}
+          {/* Right Column: Stores, Ads & Saved Ads */}
           <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-sm md:col-span-2 space-y-10">
             
-            {/* 0. Your Stores Section */}
+            {/* Your Stores Section */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -467,7 +460,6 @@ export default function DashboardPage() {
                   {stores.map((store) => (
                     <div key={store.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border p-4 rounded-2xl gap-4 hover:border-gray-300 transition bg-blue-50/20">
                       
-                      {/* Store Logo & Details */}
                       <div className="flex items-center space-x-4">
                         <div className="relative w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border flex items-center justify-center">
                           {store.logo_url ? (
@@ -487,7 +479,6 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      {/* Store Action Buttons */}
                       <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
                         <Link
                           href={`/stores/${store.slug || store.id}`}
@@ -520,7 +511,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* 1. Your Posted Ads Section */}
+            {/* Your Posted Ads Section */}
             <div className="space-y-6 pt-6 border-t border-gray-100">
               <h2 className="text-xl font-bold text-gray-900">
                 Your Posted Ads ({ads.length})
@@ -546,7 +537,6 @@ export default function DashboardPage() {
                   {ads.map((ad) => (
                     <div key={ad.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border p-4 rounded-2xl gap-4 hover:border-gray-300 transition">
                       
-                      {/* Thumbnail & Details */}
                       <div className="flex items-center space-x-4">
                         <div className="relative w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border flex items-center justify-center">
                           {ad.images && ad.images.length > 0 ? (
@@ -563,11 +553,23 @@ export default function DashboardPage() {
                         <div>
                           <div className="flex items-center space-x-2">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                              ad.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                              ad.status === 'active' 
+                                ? 'bg-green-100 text-green-700' 
+                                : ad.status === 'pending' 
+                                  ? 'bg-amber-100 text-amber-700' 
+                                  : 'bg-gray-100 text-gray-700'
                             }`}>
-                              {ad.status === 'active' ? 'Active' : 'Deactivated'}
+                              {ad.status === 'active' ? 'Active (Live)' : ad.status === 'pending' ? 'Pending Admin Approval' : 'Deactivated'}
                             </span>
+
+                            {/* Bump Status Badge */}
+                            {ad.bump_status === 'pending' && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-700">
+                                Pending Bump Approval
+                              </span>
+                            )}
                           </div>
+
                           <h3 className="font-bold text-gray-900 text-sm mt-1">{ad.title}</h3>
                           <p className="text-orange-600 font-black text-sm">LKR {Number(ad.price).toLocaleString()}</p>
                           <p className="text-xs text-gray-400 mt-0.5">📍 {ad.city}</p>
@@ -579,12 +581,12 @@ export default function DashboardPage() {
                         
                         <button
                           onClick={() => handleBumpAd(ad.id)}
-                          disabled={bumpingId === ad.id}
+                          disabled={bumpingId === ad.id || ad.bump_status === 'pending'}
                           className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-bold transition border border-purple-200 flex items-center gap-1 disabled:opacity-50"
-                          title="Bump Ad to Top"
+                          title="Request Bump Ad"
                         >
                           <Zap className="w-3.5 h-3.5" /> 
-                          {bumpingId === ad.id ? 'Bumping...' : 'Bump'}
+                          {ad.bump_status === 'pending' ? 'Pending Bump' : (bumpingId === ad.id ? 'Sending...' : 'Request Bump')}
                         </button>
 
                         <Link
@@ -603,16 +605,16 @@ export default function DashboardPage() {
                           <Edit className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Edit</span>
                         </Link>
 
-                        <button
-                          onClick={() => toggleStatus(ad.id, ad.status)}
-                          className={`px-3 py-2 rounded-xl text-xs font-bold transition border ${
-                            ad.status === 'active' 
-                              ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200' 
-                              : 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200'
-                          }`}
-                        >
-                          {ad.status === 'active' ? 'Deactivate' : 'Activate'}
-                        </button>
+                        {/* පාරිභෝගිකයාට ක්‍ෂණිකව Active කිරීම වෙනුවට Admin වෙත අනුමැතිය ඉල්ලීමට සකසා ඇත */}
+                        {ad.status !== 'active' && (
+                          <button
+                            onClick={() => handleRequestApproval(ad.id)}
+                            disabled={bumpingId === ad.id || ad.status === 'pending'}
+                            className="px-3 py-2 rounded-xl text-xs font-bold transition border bg-green-50 text-green-700 hover:bg-green-100 border-green-200 disabled:opacity-50"
+                          >
+                            {ad.status === 'pending' ? 'Approval Pending' : 'Request to Publish'}
+                          </button>
+                        )}
 
                         <button
                           onClick={() => handleDeleteAd(ad.id)}
@@ -630,7 +632,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* 2. Saved Ads (Wishlist) Section */}
+            {/* Saved Ads Section */}
             <div className="space-y-6 pt-6 border-t border-gray-100">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -649,16 +651,12 @@ export default function DashboardPage() {
                   <p className="text-gray-500 font-semibold text-sm mb-1">
                     ඔබ තවමත් කිසිදු Ad එකක් Save කර නැත.
                   </p>
-                  <p className="text-xs text-gray-400">
-                    Ads වල ඇති Heart icon එක click කරමින් ඒවා මෙහි save කරගන්න පුළුවන්.
-                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {savedAds.map((ad) => (
                     <div key={ad.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border p-4 rounded-2xl gap-4 hover:border-gray-300 transition bg-gray-50/50">
                       
-                      {/* Thumbnail & Details */}
                       <div className="flex items-center space-x-4">
                         <div className="relative w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border flex items-center justify-center">
                           {ad.images && ad.images.length > 0 ? (
@@ -666,25 +664,14 @@ export default function DashboardPage() {
                           ) : (
                             <span className="text-[10px] text-gray-400">No Image</span>
                           )}
-
-                          <span className="absolute bottom-1 right-1 text-[9px] font-bold text-white bg-blue-600/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm uppercase">
-                            {categoriesMap[ad.category_id] || 'General'}
-                          </span>
                         </div>
 
                         <div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                            ad.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                          }`}>
-                            {ad.status === 'active' ? 'Active' : 'Deactivated'}
-                          </span>
                           <h3 className="font-bold text-gray-900 text-sm mt-1">{ad.title}</h3>
                           <p className="text-orange-600 font-black text-sm">LKR {Number(ad.price).toLocaleString()}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">📍 {ad.city}</p>
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
                       <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
                         <Link
                           href={`/ads/${ad.id}`}
