@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Settings, Upload, Save, Palette, Phone, ShieldAlert, BarChart3, User, Users, Search, RefreshCw, Trash2, Calendar, Mail, Image as ImageIcon } from 'lucide-react'
+import { Settings, Upload, Save, Palette, Phone, ShieldAlert, BarChart3, User, Users, Search, RefreshCw, Trash2, Calendar, Mail, Image as ImageIcon, ShieldCheck } from 'lucide-react'
 
 export default function SuperAdminDashboard() {
   const supabase = createClient()
@@ -25,6 +25,11 @@ export default function SuperAdminDashboard() {
   // Home Background Image States
   const [bgFile, setBgFile] = useState<File | null>(null)
   const [bgPreview, setBgPreview] = useState('')
+
+  // Payment Toggle States
+  const [gatewayEnabled, setGatewayEnabled] = useState(false)
+  const [bankDepositEnabled, setBankDepositEnabled] = useState(true)
+  const [savingGateway, setSavingGateway] = useState(false)
 
   // Report State
   const [reports, setReports] = useState<any[]>([])
@@ -52,6 +57,8 @@ export default function SuperAdminDashboard() {
       setLogoPreview(settingsData.logo_url || '')
       setAvatarPreview(settingsData.admin_avatar_url || '')
       setBgPreview(settingsData.home_bg_url || '')
+      setGatewayEnabled(settingsData.gateway_enabled ?? false)
+      setBankDepositEnabled(settingsData.bank_deposit_enabled ?? true)
     }
 
     // 2. Fetch Reports / Platform Data
@@ -117,6 +124,40 @@ export default function SuperAdminDashboard() {
       setBgFile(file)
       setBgPreview(URL.createObjectURL(file))
     }
+  }
+
+  // Handle Gateway Toggle
+  const handleToggleGateway = async (checked: boolean) => {
+    setGatewayEnabled(checked)
+    setSavingGateway(true)
+
+    const { error } = await supabase
+      .from('settings')
+      .update({ gateway_enabled: checked })
+      .eq('id', 1)
+
+    if (error) {
+      alert(`Failed to update gateway status: ${error.message}`)
+      setGatewayEnabled(!checked) // Revert back on error
+    }
+    setSavingGateway(false)
+  }
+
+  // Handle Bank Deposit Toggle
+  const handleToggleBankDeposit = async (checked: boolean) => {
+    setBankDepositEnabled(checked)
+    setSavingGateway(true)
+
+    const { error } = await supabase
+      .from('settings')
+      .update({ bank_deposit_enabled: checked })
+      .eq('id', 1)
+
+    if (error) {
+      alert(`Failed to update bank deposit status: ${error.message}`)
+      setBankDepositEnabled(!checked)
+    }
+    setSavingGateway(false)
   }
 
   // Update User Role Handler
@@ -236,7 +277,7 @@ export default function SuperAdminDashboard() {
         contact_number: contactNumber,
         logo_url: logoUrl,
         admin_avatar_url: avatarUrl,
-        home_bg_url: bgUrl, // Updated Background URL
+        home_bg_url: bgUrl,
         updated_at: new Date(),
       })
       .eq('id', 1)
@@ -272,7 +313,7 @@ export default function SuperAdminDashboard() {
             <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
               <ShieldAlert className="w-8 h-8 text-orange-600" /> Super Admin Control Center
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Manage profile picture, home background image, platform branding, users, and reports.</p>
+            <p className="text-sm text-gray-500 mt-1">Manage payment gateways, profile picture, home background image, platform branding, users, and reports.</p>
           </div>
           <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-gray-100 flex items-center justify-center">
             {avatarPreview ? (
@@ -280,6 +321,61 @@ export default function SuperAdminDashboard() {
             ) : (
               <User className="w-8 h-8 text-gray-400" />
             )}
+          </div>
+        </div>
+
+        {/* Payment Gateway & Bank Deposit Toggles Section */}
+        <div className="bg-white p-8 rounded-3xl border shadow-xl space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <ShieldCheck className="w-6 h-6 text-orange-600" /> Payment & Deposit Controls
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">Control payment gateways and deposit options system-wide.</p>
+            </div>
+            {savingGateway && <span className="text-xs text-orange-600 animate-pulse font-bold">Saving changes...</span>}
+          </div>
+
+          <div className="border rounded-2xl divide-y divide-gray-100 overflow-hidden">
+            {/* 1. Online Payment Gateway Toggle */}
+            <div className="p-6 flex items-center justify-between hover:bg-gray-50 transition">
+              <div>
+                <h3 className="text-base font-bold text-gray-800">Online Payment Gateway</h3>
+                <p className="text-gray-500 text-xs mt-0.5">
+                  Enable or disable online card/digital payments for users.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={gatewayEnabled} 
+                  onChange={(e) => handleToggleGateway(e.target.checked)}
+                  disabled={savingGateway}
+                  className="sr-only peer"
+                />
+                <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-orange-600"></div>
+              </label>
+            </div>
+
+            {/* 2. Bank Deposit Option Toggle */}
+            <div className="p-6 flex items-center justify-between hover:bg-gray-50 transition">
+              <div>
+                <h3 className="text-base font-bold text-gray-800">Bank Deposit Option</h3>
+                <p className="text-gray-500 text-xs mt-0.5">
+                  Enable or disable manual bank slip uploads for users.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={bankDepositEnabled} 
+                  onChange={(e) => handleToggleBankDeposit(e.target.checked)}
+                  disabled={savingGateway}
+                  className="sr-only peer"
+                />
+                <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-orange-600"></div>
+              </label>
+            </div>
           </div>
         </div>
 

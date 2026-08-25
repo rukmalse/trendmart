@@ -4,11 +4,21 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { MapPin, Calendar, PhoneCall, Share2, ShieldCheck, Phone, Check, Building2, Briefcase } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { MapPin, Calendar, PhoneCall, Share2, ShieldCheck, Phone, Check, Briefcase } from 'lucide-react'
+
+// Leaflet සිතියම SSR (Server-Side Rendering) දෝෂ මඟහරවා ගැනීම සඳහා dynamic import කිරීම
+const LocationMap = dynamic(() => import('@/components/LocationMap'), { 
+  ssr: false,
+  loading: () => <div className="h-[400px] w-full bg-gray-100 rounded-2xl animate-pulse flex items-center justify-center text-xs text-gray-400">Loading Map...</div>
+})
 
 export default function ServiceDetailPage() {
   const params = useParams()
-  const serviceId = params.id as string
+  // URL එකේ ඇති [id] හෝ encoded `%5Bid%5D` වැරදි ලෙස ලබා ගැනීම වැළැක්වීම
+  const rawId = params?.id
+  const serviceId = typeof rawId === 'string' ? decodeURIComponent(rawId) : ''
+  
   const supabase = createClient()
 
   const [service, setService] = useState<any>(null)
@@ -20,7 +30,11 @@ export default function ServiceDetailPage() {
 
   useEffect(() => {
     async function fetchServiceDetails() {
-      if (!serviceId) return
+      // id එක නිවැරදි UUID එකක් දැයි පරීක්ෂා කිරීම (literal `[id]` හෝ හිස් වීම වැළැක්වීමට)
+      if (!serviceId || serviceId === '[id]' || serviceId.includes('%5B')) {
+        setLoading(false)
+        return
+      }
 
       const { data, error } = await supabase
         .from('service_providers')
@@ -99,6 +113,12 @@ export default function ServiceDetailPage() {
     )
   }
 
+  // සිතියම පෙන්වීම සඳහා Coordinates සකස් කර ගැනීම
+  const hasCoordinates = service.latitude && service.longitude;
+  const mapCenter = hasCoordinates 
+    ? { lat: Number(service.latitude), lng: Number(service.longitude) } 
+    : { lat: 7.8731, lng: 80.7718 }; // Default: Sri Lanka Center
+
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -110,7 +130,7 @@ export default function ServiceDetailPage() {
           <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-3">
             <div className="flex items-center gap-2">
               <span className="inline-block bg-orange-100 text-orange-700 text-xs font-semibold px-3 py-1 rounded-full uppercase">
-                {service.category || 'Service'}
+                {service.service_category_id || service.category || 'Service'}
               </span>
               <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full uppercase">
                 Verified Provider
@@ -121,7 +141,7 @@ export default function ServiceDetailPage() {
             
             <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 pt-1">
               <span className="flex items-center gap-1 font-medium text-gray-700">
-                <MapPin className="w-4 h-4 text-orange-500" /> {service.city}, {service.address}
+                <MapPin className="w-4 h-4 text-orange-500" /> {service.address || 'Sri Lanka'}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1">
@@ -133,14 +153,14 @@ export default function ServiceDetailPage() {
           {/* Service Overview / Specification */}
           <div className="bg-white p-6 rounded-3xl border shadow-sm">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Service Overview</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-gray-50 p-4 rounded-2xl border flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
                   <Briefcase className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 font-medium">Category</p>
-                  <p className="text-sm font-bold text-gray-800 capitalize">{service.category}</p>
+                  <p className="text-sm font-bold text-gray-800 capitalize">{service.service_category_id || service.category || 'General'}</p>
                 </div>
               </div>
               <div className="bg-gray-50 p-4 rounded-2xl border flex items-center gap-3">
@@ -149,7 +169,7 @@ export default function ServiceDetailPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 font-medium">Location</p>
-                  <p className="text-sm font-bold text-gray-800">{service.city}</p>
+                  <p className="text-sm font-bold text-gray-800 truncate max-w-[180px]">{service.address || 'Sri Lanka'}</p>
                 </div>
               </div>
             </div>
@@ -161,6 +181,17 @@ export default function ServiceDetailPage() {
             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
               {service.description || 'විස්තර සඳහන් කර නොමැත.'}
             </p>
+          </div>
+
+          {/* Location Map Section */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-4">
+            <h3 className="text-lg font-bold text-gray-900">Service Location</h3>
+            <div className="w-full rounded-2xl overflow-hidden border">
+              <LocationMap 
+                center={mapCenter} 
+                locations={[service]} 
+              />
+            </div>
           </div>
 
         </div>

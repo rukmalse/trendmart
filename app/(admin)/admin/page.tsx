@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle2, XCircle, Trash2, Clock, RefreshCw, Zap } from 'lucide-react'
+import { CheckCircle2, XCircle, Trash2, Clock, RefreshCw, Zap, Eye, CreditCard, Image as ImageIcon } from 'lucide-react'
 import Link from 'next/link'
 
 interface Ad {
@@ -12,24 +12,67 @@ interface Ad {
   price: number
   status: string
   bump_status: string
+  slip_url?: string
   created_at: string
   user_id: string
 }
 
+interface BumpRequest {
+  id: string
+  ad_id: string
+  payment_method: string
+  slip_url: string
+  amount: number
+  status: string
+  created_at: string
+  ads?: {
+    title: string
+    price: number
+  }
+}
+
+interface PaymentRequest {
+  id: string
+  created_at: string
+  payment_method: string
+  deposited_date: string
+  deposited_time: string
+  amount: number
+  reference_no: string
+  slip_url: string
+  status: string
+}
+
+interface BannerRequest {
+  id: string
+  user_id: string
+  business_name: string
+  target_url: string
+  duration_days: number
+  banner_url: string
+  payment_slip_url: string
+  status: string
+  created_at: string
+}
+
 export default function AdminMainDashboard() {
   const [pendingAds, setPendingAds] = useState<Ad[]>([])
-  const [bumpAds, setBumpAds] = useState<Ad[]>([])
+  const [bumpAds, setBumpAds] = useState<BumpRequest[]>([])
+  const [pendingPayments, setPendingPayments] = useState<PaymentRequest[]>([])
+  const [bannerRequests, setBannerRequests] = useState<BannerRequest[]>([])
+  
   const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
-
-  // Initialize Supabase client cleanly
+  const [actionLoading, setActionLoading]  = useState<string | null>(null)
+  
+  const [selectedSlip, setSelectedSlip] = useState<string | null>(null)
+  
   const supabase = createClient()
 
-  // 1. Fetch Pending Ads & Pending Bump Requests
+  // 1. Fetch Data
   const fetchData = async () => {
     setLoading(true)
 
-    // Fetch Pending Ads (නව හෝ Edit කළ දැන්වීම්)
+    // Fetch Pending Ads
     const { data: adsData } = await supabase
       .from('ads')
       .select('*')
@@ -38,14 +81,66 @@ export default function AdminMainDashboard() {
 
     if (adsData) setPendingAds(adsData)
 
-    // Fetch Pending Bump Requests (Bump කිරීමට ඉල්ලා ඇති දැන්වීම්)
-    const { data: bumpsData } = await supabase
-      .from('ads')
+    // Fetch Pending Bump Requests
+    const { data: bumpsData, error: bumpsError } = await supabase
+      .from('ad_bumps') 
       .select('*')
-      .eq('bump_status', 'pending')
+      .eq('status', 'pending')
       .order('created_at', { ascending: false })
 
-    if (bumpsData) setBumpAds(bumpsData)
+    if (bumpsError) {
+      console.error('Error fetching bumps:', bumpsError.message)
+    }
+
+    if (bumpsData && bumpsData.length > 0) {
+      const enrichedBumps = await Promise.all(
+        bumpsData.map(async (bump) => {
+          let adDetails = { title: 'View Advertisement', price: 0 }
+          if (bump.ad_id) {
+            const { data: singleAd } = await supabase
+              .from('ads')
+              .select('title, price')
+              .eq('id', bump.ad_id)
+              .single()
+            
+            if (singleAd) {
+              adDetails = singleAd
+            }
+          }
+          return {
+            ...bump,
+            ads: adDetails
+          }
+        })
+      )
+      setBumpAds(enrichedBumps as BumpRequest[])
+    } else {
+      setBumpAds([])
+    }
+
+    // Fetch Pending Bank Payments
+    const { data: paymentsData, error: paymentsError } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (paymentsError) {
+      console.error('Error fetching payments:', paymentsError.message)
+    }
+    if (paymentsData) setPendingPayments(paymentsData)
+
+    // Fetch Pending Banner Requests
+    const { data: bannersData, error: bannersError } = await supabase
+      .from('banner_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (bannersError) {
+      console.error('Error fetching banners:', bannersError.message)
+    }
+    if (bannersData) setBannerRequests(bannersData)
 
     setLoading(false)
   }
@@ -63,7 +158,7 @@ export default function AdminMainDashboard() {
       .eq('id', id)
 
     if (!error) {
-      setPendingAds((prev) => prev.filter((ad) => ad.id !== id))
+      await fetchData()
     } else {
       alert(`Failed to update status: ${error.message}`)
     }
@@ -71,29 +166,78 @@ export default function AdminMainDashboard() {
   }
 
   // 3. Approve or Reject Bump Request
-  const handleUpdateBumpStatus = async (id: string, actionType: 'approved' | 'none') => {
-    setActionLoading(id)
-    const updateData: any = { bump_status: actionType }
-    
-    // Bump එක Approve කළහොත් දැන්වීම ඉස්මතු කිරීමට 'bumped_at' වේලාවද යාවත්කාලීන කරයි
-    if (actionType === 'approved') {
-      updateData.bumped_at = new Date()
+  const handleUpdateBumpStatus = async (bumpId: string, adId: string, actionType: 'approved' | 'rejected') => {
+    setActionLoading(bumpId)
+
+    const { error: bumpError } = await supabase
+      .from('ad_bumps')
+      .update({ status: actionType })
+      .eq('id', bumpId)
+
+    if (bumpError) {
+      alert(`Database Error: ${bumpError.message}`)
+      setActionLoading(null)
+      return
     }
 
+    if (adId) {
+      const updatePayload: any = { 
+        bump_status: actionType === 'approved' ? 'approved' : 'rejected' 
+      }
+
+      if (actionType === 'approved') {
+        updatePayload.bumped_at = new Date().toISOString()
+      }
+
+      const { error: adUpdateError } = await supabase
+        .from('ads')
+        .update(updatePayload)
+        .eq('id', adId)
+
+      if (adUpdateError) {
+        console.error('Failed to update ad bump_status:', adUpdateError.message)
+      }
+    }
+
+    await fetchData()
+    setActionLoading(null)
+  }
+
+  // 4. Approve or Reject Bank Payment Confirmation
+  const handleUpdatePaymentStatus = async (paymentId: string, actionType: 'approved' | 'rejected') => {
+    setActionLoading(paymentId)
+
     const { error } = await supabase
-      .from('ads')
-      .update(updateData)
-      .eq('id', id)
+      .from('payments')
+      .update({ status: actionType })
+      .eq('id', paymentId)
 
     if (!error) {
-      setBumpAds((prev) => prev.filter((ad) => ad.id !== id))
+      await fetchData()
     } else {
-      alert(`Failed to update bump status: ${error.message}`)
+      alert(`Failed to update payment status: ${error.message}`)
     }
     setActionLoading(null)
   }
 
-  // 4. Delete Ad
+  // 5. Approve or Reject Banner Request
+  const handleUpdateBannerStatus = async (bannerId: string, actionType: 'approved' | 'rejected') => {
+    setActionLoading(bannerId)
+
+    const { error } = await supabase
+      .from('banner_requests')
+      .update({ status: actionType })
+      .eq('id', bannerId)
+
+    if (!error) {
+      await fetchData()
+    } else {
+      alert(`Failed to update banner status: ${error.message}`)
+    }
+    setActionLoading(null)
+  }
+
+  // 6. Delete Ad
   const handleDeleteAd = async (id: string) => {
     if (!confirm('Are you sure you want to delete this ad permanently?')) return
 
@@ -101,8 +245,7 @@ export default function AdminMainDashboard() {
     const { error } = await supabase.from('ads').delete().eq('id', id)
 
     if (!error) {
-      setPendingAds((prev) => prev.filter((ad) => ad.id !== id))
-      setBumpAds((prev) => prev.filter((ad) => ad.id !== id))
+      await fetchData()
     } else {
       alert(`Failed to delete ad: ${error.message}`)
     }
@@ -115,7 +258,7 @@ export default function AdminMainDashboard() {
       <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Admin Quick Overview</h1>
-          <p className="text-gray-500 text-sm mt-1">Review pending advertisements and bump requests.</p>
+          <p className="text-gray-500 text-sm mt-1">Review pending advertisements, bump requests, banner requests and bank payment slips.</p>
         </div>
         <button
           onClick={fetchData}
@@ -127,7 +270,181 @@ export default function AdminMainDashboard() {
         </button>
       </div>
 
-      {/* ---------------- 1. PENDING BUMP REQUESTS SECTION ---------------- */}
+      {/* ---------------- 1. PENDING BANNER REQUESTS SECTION ---------------- */}
+      <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
+        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-indigo-50/50">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-lg font-bold text-gray-800">Pending Banner Requests ({bannerRequests.length})</h2>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="p-8 text-center text-gray-500 text-sm">Loading banner requests...</div>
+        ) : bannerRequests.length === 0 ? (
+          <div className="p-8 text-center text-gray-500 text-sm">
+            No pending banner requests at this moment.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-600">
+              <thead className="bg-gray-50 text-gray-700 uppercase text-xs">
+                <tr>
+                  <th className="p-4">Business Name</th>
+                  <th className="p-4">Target URL</th>
+                  <th className="p-4">Duration</th>
+                  <th className="p-4 text-center">Banner Image</th>
+                  <th className="p-4 text-center">Payment Slip</th>
+                  <th className="p-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {bannerRequests.map((banner) => (
+                  <tr key={banner.id} className="hover:bg-gray-50/50 transition">
+                    <td className="p-4 font-semibold text-gray-800">
+                      {banner.business_name}
+                    </td>
+                    <td className="p-4">
+                      <a 
+                        href={banner.target_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-blue-600 hover:underline max-w-xs truncate block"
+                      >
+                        {banner.target_url} ↗
+                      </a>
+                    </td>
+                    <td className="p-4 font-medium text-gray-700">
+                      {banner.duration_days} Days
+                    </td>
+                    <td className="p-4 text-center">
+                      {banner.banner_url ? (
+                        <button
+                          onClick={() => setSelectedSlip(banner.banner_url)}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-semibold transition shadow-sm"
+                        >
+                          <Eye className="w-4 h-4" /> View Banner
+                        </button>
+                      ) : (
+                        <span className="text-xs text-red-500 font-medium">No Image</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-center">
+                      {banner.payment_slip_url ? (
+                        <button
+                          onClick={() => setSelectedSlip(banner.payment_slip_url)}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition shadow-sm"
+                        >
+                          <Eye className="w-4 h-4" /> View Slip
+                        </button>
+                      ) : (
+                        <span className="text-xs text-red-500 font-medium">No Slip</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleUpdateBannerStatus(banner.id, 'approved')}
+                          disabled={actionLoading === banner.id}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition"
+                        >
+                          <CheckCircle2 className="w-4 h-4" /> Approve
+                        </button>
+                        <button
+                          onClick={() => handleUpdateBannerStatus(banner.id, 'rejected')}
+                          disabled={actionLoading === banner.id}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition"
+                        >
+                          <XCircle className="w-4 h-4" /> Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ---------------- 2. PENDING BANK PAYMENT CONFIRMATIONS SECTION ---------------- */}
+      <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-blue-50/50">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-blue-600" />
+            <h2 className="text-lg font-bold text-gray-800">Payment Confirmations ({pendingPayments.length})</h2>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="p-8 text-center text-gray-500 text-sm">Loading payment requests...</div>
+        ) : pendingPayments.length === 0 ? (
+          <div className="p-8 text-center text-gray-500 text-sm">
+            No pending bank payment slips at this moment.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-600">
+              <thead className="bg-gray-50 text-gray-700 uppercase text-xs">
+                <tr>
+                  <th className="p-4">Date & Time</th>
+                  <th className="p-4">Amount</th>
+                  <th className="p-4">Reference / Note</th>
+                  <th className="p-4 text-center">Bank Slip</th>
+                  <th className="p-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {pendingPayments.map((payment) => (
+                  <tr key={payment.id} className="hover:bg-gray-50/50 transition">
+                    <td className="p-4 text-xs text-gray-600 font-medium">
+                      {payment.deposited_date || new Date(payment.created_at).toLocaleDateString()} {payment.deposited_time || ''}
+                    </td>
+                    <td className="p-4 font-bold text-gray-800">
+                      LKR {payment.amount ? payment.amount.toLocaleString() : 'N/A'}
+                    </td>
+                    <td className="p-4 text-gray-700">
+                      {payment.reference_no || 'N/A'}
+                    </td>
+                    <td className="p-4 text-center">
+                      {payment.slip_url ? (
+                        <button
+                          onClick={() => setSelectedSlip(payment.slip_url)}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition shadow-sm"
+                        >
+                          <Eye className="w-4 h-4" /> View Slip
+                        </button>
+                      ) : (
+                        <span className="text-xs text-red-500 font-medium">No Slip Found</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleUpdatePaymentStatus(payment.id, 'approved')}
+                          disabled={actionLoading === payment.id}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition"
+                        >
+                          <CheckCircle2 className="w-4 h-4" /> Approve
+                        </button>
+                        <button
+                          onClick={() => handleUpdatePaymentStatus(payment.id, 'rejected')}
+                          disabled={actionLoading === payment.id}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition"
+                        >
+                          <XCircle className="w-4 h-4" /> Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ---------------- 3. PENDING BUMP REQUESTS SECTION ---------------- */}
       <div className="bg-white rounded-xl shadow-sm border border-purple-100 overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-purple-50/50">
           <div className="flex items-center gap-2">
@@ -147,38 +464,51 @@ export default function AdminMainDashboard() {
             <table className="w-full text-left text-sm text-gray-600">
               <thead className="bg-gray-50 text-gray-700 uppercase text-xs">
                 <tr>
-                  <th className="p-4">Title</th>
-                  <th className="p-4">Price</th>
+                  <th className="p-4">Ad Title</th>
+                  <th className="p-4">Amount</th>
+                  <th className="p-4 text-center">Bank Slip</th>
                   <th className="p-4 text-center">Bump Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {bumpAds.map((ad) => (
-                  <tr key={ad.id} className="hover:bg-gray-50/50 transition">
+                {bumpAds.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50/50 transition">
                     <td className="p-4">
                       <Link 
-                        href={`/ads/${ad.id}`} 
+                        href={`/ads/${item.ad_id}`} 
                         target="_blank"
                         className="font-semibold text-gray-800 hover:text-purple-600 hover:underline block"
                       >
-                        {ad.title} ↗
+                        {item.ads?.title || 'View Advertisement'} ↗
                       </Link>
                     </td>
                     <td className="p-4 font-bold text-gray-700">
-                      LKR {ad.price ? ad.price.toLocaleString() : 'N/A'}
+                      LKR {item.amount ? item.amount.toLocaleString() : 'N/A'}
+                    </td>
+                    <td className="p-4 text-center">
+                      {item.slip_url ? (
+                        <button
+                          onClick={() => setSelectedSlip(item.slip_url)}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg text-xs font-semibold transition shadow-sm"
+                        >
+                          <Eye className="w-4 h-4" /> View Slip
+                        </button>
+                      ) : (
+                        <span className="text-xs text-red-500 font-medium">No Slip Found</span>
+                      )}
                     </td>
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => handleUpdateBumpStatus(ad.id, 'approved')}
-                          disabled={actionLoading === ad.id}
+                          onClick={() => handleUpdateBumpStatus(item.id, item.ad_id, 'approved')}
+                          disabled={actionLoading === item.id}
                           className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition"
                         >
                           <CheckCircle2 className="w-4 h-4" /> Approve Bump
                         </button>
                         <button
-                          onClick={() => handleUpdateBumpStatus(ad.id, 'none')}
-                          disabled={actionLoading === ad.id}
+                          onClick={() => handleUpdateBumpStatus(item.id, item.ad_id, 'rejected')}
+                          disabled={actionLoading === item.id}
                           className="flex items-center gap-1 px-3 py-1.5 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg text-xs font-semibold transition"
                         >
                           <XCircle className="w-4 h-4" /> Reject
@@ -193,7 +523,7 @@ export default function AdminMainDashboard() {
         )}
       </div>
 
-      {/* ---------------- 2. PENDING ADS APPROVAL SECTION ---------------- */}
+      {/* ---------------- 4. PENDING ADS APPROVAL SECTION ---------------- */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-orange-50/50">
           <div className="flex items-center gap-2">
@@ -287,6 +617,48 @@ export default function AdminMainDashboard() {
           </div>
         )}
       </div>
+
+      {/* ---------------- SLIP / BANNER PREVIEW MODAL ---------------- */}
+      {selectedSlip && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 relative shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="text-lg font-bold text-gray-800">Preview Image</h3>
+              <button
+                onClick={() => setSelectedSlip(null)}
+                className="text-gray-400 hover:text-gray-600 font-bold text-xl px-2"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="flex justify-center bg-gray-50 p-4 rounded-xl max-h-[70vh] overflow-auto">
+              <img 
+                src={selectedSlip} 
+                alt="Preview" 
+                className="max-w-full h-auto object-contain rounded-lg border shadow-sm"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <a 
+                href={selectedSlip} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition"
+              >
+                Open in New Tab ↗
+              </a>
+              <button
+                onClick={() => setSelectedSlip(null)}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

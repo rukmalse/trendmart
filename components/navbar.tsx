@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { User, LogOut, LayoutDashboard, Menu, X } from 'lucide-react'
+import { User, LogOut, LayoutDashboard, Menu, X, Megaphone, Briefcase } from 'lucide-react'
 
 export default function Navbar() {
   const supabase = createClient()
@@ -131,6 +131,10 @@ export default function Navbar() {
             <span className="bg-orange-100 text-orange-700 text-[10px] font-black px-1.5 py-0.5 rounded mr-1.5 uppercase">New</span>
             Manpower & Jobs
           </Link>
+          <Link href="/request-banner" className="text-sm font-bold text-gray-700 hover:text-orange-500 transition flex items-center gap-1.5">
+            <Megaphone className="w-4 h-4 text-orange-500" />
+            Request Banner
+          </Link>
         </nav>
 
         {/* 3. User State & Action Buttons (Desktop) */}
@@ -146,7 +150,14 @@ export default function Navbar() {
                       {user.email?.[0]?.toUpperCase() || 'U'}
                     </div>
                   )}
-                  <span className="truncate max-w-[120px]">{user.email}</span>
+                  <span className="truncate max-w-[100px]">{user.email}</span>
+                </Link>
+
+                <span className="text-gray-300">|</span>
+
+                <Link href="/dashboard/my-ads" className="flex items-center gap-1 font-bold text-gray-700 hover:text-orange-600 transition" title="My Ads">
+                  <Briefcase className="w-3.5 h-3.5 text-orange-500" />
+                  <span>My Ads</span>
                 </Link>
 
                 <span className="text-gray-300">|</span>
@@ -169,19 +180,19 @@ export default function Navbar() {
             )
           )}
 
-          <Link href="/post-service" className="text-xs font-bold px-3 py-2 rounded-xl border transition" style={{ color: siteSettings.primary_color, backgroundColor: `${siteSettings.primary_color}10`, borderColor: `${siteSettings.primary_color}30` }}>
+          <Link href="/services/create" className="text-xs font-bold px-3 py-2 rounded-xl border transition" style={{ color: siteSettings.primary_color, backgroundColor: `${siteSettings.primary_color}10`, borderColor: `${siteSettings.primary_color}30` }}>
             + Post Service
           </Link>
 
-          <Link href="/post-ad" className="text-xs font-bold text-white px-4 py-2 rounded-xl shadow transition" style={{ backgroundColor: siteSettings.primary_color }}>
-            + Post Ad
+          <Link href="/jobs/create" className="text-xs font-bold text-white px-4 py-2 rounded-xl shadow transition" style={{ backgroundColor: siteSettings.primary_color }}>
+            + Post Job
           </Link>
         </div>
 
         {/* 4. Mobile Menu Toggle & Quick Buttons */}
         <div className="flex md:hidden items-center space-x-2">
           <Link 
-            href="/post-ad" 
+            href="/services/create" 
             className="text-[11px] font-bold text-white px-2.5 py-1.5 rounded-lg shadow"
             style={{ backgroundColor: siteSettings.primary_color }}
           >
@@ -215,7 +226,14 @@ export default function Navbar() {
             Manpower & Jobs
           </Link>
           <Link 
-            href="/post-service" 
+            href="/request-banner" 
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 py-2 text-sm font-bold text-gray-700 border-b"
+          >
+            <Megaphone className="w-4 h-4 text-orange-500" /> Request Banner Ad
+          </Link>
+          <Link 
+            href="/services/create" 
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-bold text-orange-600 border-b"
           >
@@ -241,9 +259,17 @@ export default function Navbar() {
                 </Link>
 
                 <Link 
+                  href="/dashboard/my-ads"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 py-2 text-sm font-bold text-gray-800 border-b"
+                >
+                  <Briefcase className="w-4 h-4 text-orange-500" /> My Posted Ads
+                </Link>
+
+                <Link 
                   href={dashboardHref}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 py-2 text-sm font-bold text-gray-800"
+                  className="flex items-center gap-2 py-2 text-sm font-bold text-gray-800 border-b"
                 >
                   <LayoutDashboard className="w-4 h-4 text-orange-500" /> Dashboard
                 </Link>

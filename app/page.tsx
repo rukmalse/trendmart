@@ -1,7 +1,9 @@
 'use client'
 
+import TopCarouselAds from '@/components/TopCarouselAds'
+import StoresSlider from '@/components/StoresSlider'
 import dynamic from 'next/dynamic'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -9,7 +11,8 @@ import {
   Search, MapPin, Navigation, Star, Phone, Tag, 
   Car, Home, Building2, Smartphone, Tv, Flower2, Dog, 
   Tractor, Wrench, Shirt, Trophy, Factory, GraduationCap, 
-  ShoppingBag, Briefcase, Globe2, X, Award, Heart, Store, ArrowRight, SlidersHorizontal, Zap
+  ShoppingBag, Briefcase, Globe2, X, Award, Heart, Store, ArrowRight, SlidersHorizontal, Zap,
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
 
 const sriLankaDistricts = [
@@ -57,8 +60,21 @@ export default function HomePage() {
   const [favorites, setFavorites] = useState<string[]>([])
 
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>({ lat: 6.9271, lng: 79.8612 })
-  const [isLocating, setIsLocating] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  // Ref for Categories Slider scrolling
+  const categoriesScrollRef = useRef<HTMLDivElement>(null)
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (categoriesScrollRef.current) {
+      const { scrollLeft, clientWidth } = categoriesScrollRef.current
+      const scrollAmount = clientWidth * 0.75
+      categoriesScrollRef.current.scrollTo({
+        left: direction === 'left' ? scrollLeft - scrollAmount : scrollLeft + scrollAmount,
+        behavior: 'smooth'
+      })
+    }
+  }
 
   useEffect(() => {
     async function initData() {
@@ -67,7 +83,6 @@ export default function HomePage() {
 
       setLoading(true)
       try {
-        // 0. Fetch Settings for Background Image
         const { data: settingsData } = await supabase
           .from('settings')
           .select('home_bg_url')
@@ -78,7 +93,6 @@ export default function HomePage() {
           setHomeBgUrl(settingsData.home_bg_url)
         }
 
-        // 1. Fetch Categories & Remove Duplicates
         const { data: catData, error: catError } = await supabase.from('categories').select('*')
         if (catError) console.error('Category error:', catError.message)
         
@@ -89,7 +103,6 @@ export default function HomePage() {
           setCategories(uniqueCategories)
         }
 
-        // 2. Fetch Ads (Active only, with Bumped ads priority sorting)
         const { data: adsData, error: adsError } = await (supabase
           .from('ads')
           .select('*')
@@ -103,7 +116,6 @@ export default function HomePage() {
           setAllAds(adsData || [])
         }
 
-        // 3. Fetch Stores
         const { data: storesData, error: storesError } = await supabase
           .from('stores')
           .select('*')
@@ -122,17 +134,13 @@ export default function HomePage() {
         setLoading(false)
       }
 
-      // 4. Get User Live Location
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            const currentLat = position.coords.latitude;
-            const currentLng = position.coords.longitude;
-            setUserLocation({ lat: currentLat, lng: currentLng });
+            setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
             fetchNearbyServices();
           },
-          (error) => {
-            console.warn("Geolocation permission denied or error:", error.message);
+          () => {
             fetchNearbyServices();
           },
           { enableHighAccuracy: true }
@@ -152,13 +160,11 @@ export default function HomePage() {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error("Fetch services error:", error.message)
         setServices([])
       } else {
         setServices(data || [])
       }
     } catch (e) {
-      console.error("Error:", e)
       setServices([])
     }
   }
@@ -200,7 +206,6 @@ export default function HomePage() {
 
     return true
   }).sort((a, b) => {
-    // පළමුව Bumped අනුපිළිවෙල බලයි, ඉන්පසු පරිශීලකයා තෝරන Sort එක ක්‍රියාත්මක වේ
     const aBumped = a.bump_status === 'approved' ? 1 : 0;
     const bBumped = b.bump_status === 'approved' ? 1 : 0;
     if (aBumped !== bBumped) {
@@ -230,7 +235,6 @@ export default function HomePage() {
 
         <div className="relative max-w-4xl mx-auto text-center z-10">
           
-          {/* Live Active Ads Count Badge */}
           <div className="flex justify-center items-center mb-4">
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-white/10 text-white border border-white/25 backdrop-blur-md shadow-sm">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping absolute"></span>
@@ -297,76 +301,53 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Stores Section */}
-      {activeTab === 'classifieds' && stores.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 pt-10">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-2xl font-black tracking-tight text-gray-900">Featured Stores & Shops</h2>
-              <p className="text-xs text-gray-500 font-medium mt-0.5">Explore trusted businesses and services on TrendMart</p>
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {stores.map((store) => (
-              <Link 
-                key={store.id}
-                href={`/stores/${store.slug}`}
-                className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition group flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden border border-blue-100 shrink-0">
-                      {store.logo_url ? (
-                        <img src={store.logo_url} alt={store.store_name} className="w-full h-full object-cover" />
-                      ) : (
-                        <Store className="w-6 h-6 text-blue-600" />
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition line-clamp-1">
-                        {store.store_name}
-                      </h3>
-                      {store.district && (
-                        <p className="text-xs text-gray-500 flex items-center mt-0.5">
-                          <MapPin className="w-3 h-3 mr-1 text-gray-400" /> {store.district}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {store.description && (
-                    <p className="text-xs text-gray-600 line-clamp-2 mb-4">
-                      {store.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-blue-600">
-                  <span>Visit Store</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+      {/* Top Carousel Banner Component */}
+      {activeTab === 'classifieds' && (
+        <TopCarouselAds />
       )}
 
-      {/* Categories Section */}
+      {/* Featured Stores Slider Component */}
+      {activeTab === 'classifieds' && stores.length > 0 && (
+        <StoresSlider stores={stores} />
+      )}
+
+      {/* 🌟 Categories Slider Section */}
       {activeTab === 'classifieds' && (
         <section className="max-w-7xl mx-auto px-4 py-10">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-2xl font-black tracking-tight text-gray-900">Browse Categories</h2>
-              <p className="text-xs text-gray-500 font-medium mt-0.5">Explore popular categories</p>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">Explore popular categories by sliding through</p>
             </div>
-            {selectedCategory && (
-              <button onClick={() => setSelectedCategory(null)} className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200">
-                Clear Category
+            
+            <div className="flex items-center gap-2">
+              {selectedCategory && (
+                <button onClick={() => setSelectedCategory(null)} className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200">
+                  Clear Category
+                </button>
+              )}
+              {/* Slider Navigation Arrows */}
+              <button 
+                onClick={() => scrollCategories('left')}
+                className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 shadow-sm text-gray-700 transition"
+              >
+                <ChevronLeft className="w-5 h-5" />
               </button>
-            )}
+              <button 
+                onClick={() => scrollCategories('right')}
+                className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 shadow-sm text-gray-700 transition"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {/* Horizontal Sliding Container */}
+          <div 
+            ref={categoriesScrollRef}
+            className="flex gap-4 overflow-x-auto scrollbar-none pb-4 pt-1 px-1 snap-x scroll-smooth"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
             {categories.map((cat) => {
               const IconComponent = iconMap[cat.icon] || Tag
               const isSelected = selectedCategory === cat.id
@@ -375,15 +356,15 @@ export default function HomePage() {
                 <div
                   key={cat.id}
                   onClick={() => setSelectedCategory(isSelected ? null : cat.id)}
-                  className={`p-4 rounded-2xl border transition-all flex items-center gap-3.5 cursor-pointer ${
+                  className={`min-w-[200px] sm:min-w-[220px] p-4 rounded-2xl border transition-all flex items-center gap-3.5 cursor-pointer snap-start shrink-0 shadow-sm hover:shadow-md ${
                     isSelected ? 'bg-orange-50 border-orange-500 ring-2 ring-orange-400' : 'bg-white border-gray-200 hover:border-orange-300'
                   }`}
                 >
-                  <div className={`p-2.5 rounded-xl ${isSelected ? 'bg-orange-500 text-white' : 'bg-blue-50 text-blue-600'}`}>
+                  <div className={`p-2.5 rounded-xl shrink-0 ${isSelected ? 'bg-orange-500 text-white' : 'bg-blue-50 text-blue-600'}`}>
                     <IconComponent className="w-6 h-6" />
                   </div>
-                  <div>
-                    <h3 className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-orange-600' : 'text-gray-800'}`}>{cat.name}</h3>
+                  <div className="truncate">
+                    <h3 className={`text-xs sm:text-sm font-bold truncate ${isSelected ? 'text-orange-600' : 'text-gray-800'}`}>{cat.name}</h3>
                   </div>
                 </div>
               )
@@ -392,7 +373,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Services Tab View */}
+      {/* Services Tab View - Optimized with Category & Description */}
       {activeTab === 'services' && (
         <section className="max-w-7xl mx-auto px-4 py-8 space-y-6">
           <div className="bg-white p-3 rounded-2xl border shadow-sm">
@@ -405,10 +386,31 @@ export default function HomePage() {
               </div>
             ) : (
               services.map((service) => (
-                <div key={service.id} className="bg-white p-5 rounded-2xl border shadow-sm">
-                  <h3 className="font-bold text-lg text-gray-900 mb-1">{service.business_name}</h3>
-                  <p className="text-xs text-gray-500 mb-3">{service.address}</p>
-                  <a href={`tel:${service.phone}`} className="w-full bg-green-600 text-white font-bold py-2.5 rounded-xl flex items-center justify-center text-sm">
+                <div key={service.id} className="bg-white p-5 rounded-2xl border shadow-sm flex flex-col justify-between">
+                  <div>
+                    {/* Service Category Badge */}
+                    {service.service_category_id && (
+                      <span className="inline-block text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full mb-2.5 border border-orange-100">
+                        {service.service_category_id}
+                      </span>
+                    )}
+                    <h3 className="font-bold text-lg text-gray-900 mb-1">{service.business_name}</h3>
+                    
+                    {/* Description */}
+                    {service.description && (
+                      <p className="text-xs text-gray-600 mb-3 line-clamp-2">{service.description}</p>
+                    )}
+                    
+                    <p className="text-xs text-gray-500 mb-4 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <span className="truncate">{service.address || 'Sri Lanka'}</span>
+                    </p>
+                  </div>
+
+                  <a 
+                    href={`tel:${service.phone}`} 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-xl flex items-center justify-center text-sm transition shadow-sm"
+                  >
                     <Phone className="w-4 h-4 mr-2" /> Call {service.phone}
                   </a>
                 </div>
@@ -421,12 +423,10 @@ export default function HomePage() {
       {/* Ads List Grid */}
       {activeTab === 'classifieds' && (
         <section className="max-w-7xl mx-auto px-4 py-8 mb-12">
-          {/* Header with Sorting and Condition Filters */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <h2 className="text-2xl font-black text-gray-900">Product & Ad Listings</h2>
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-              {/* Condition Filter */}
               <select
                 value={selectedCondition}
                 onChange={(e) => setSelectedCondition(e.target.value)}
@@ -437,7 +437,6 @@ export default function HomePage() {
                 <option value="used">Used</option>
               </select>
 
-              {/* Sorting Filter */}
               <div className="flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
                 <SlidersHorizontal className="w-3.5 h-3.5 text-gray-400 mr-2" />
                 <select
@@ -468,7 +467,6 @@ export default function HomePage() {
                   <Link key={ad.id} href={`/ads/${ad.id}`} className="block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition group relative">
                     <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden relative">
                       
-                      {/* ✨ උඩ වම් මුල්ලේ Bumped Badge එක */}
                       {ad.bump_status === 'approved' && (
                         <div className="absolute top-3 left-3 z-20 bg-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 backdrop-blur-md">
                           <Zap className="w-3.5 h-3.5 fill-white" />
@@ -482,7 +480,6 @@ export default function HomePage() {
                         <span className="text-gray-400 text-xs">No Image</span>
                       )}
 
-                      {/* ❤️ Heart Button */}
                       <button 
                         onClick={(e) => toggleFavorite(e, ad.id)}
                         className="absolute top-3 right-3 z-20 p-2 bg-white/90 backdrop-blur-md rounded-full shadow-md hover:bg-white transition"

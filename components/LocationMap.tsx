@@ -23,9 +23,13 @@ function ChangeView({ center }: { center: { lat: number; lng: number } }) {
   useEffect(() => {
     if (map && center && typeof center.lat === 'number' && typeof center.lng === 'number') {
       try {
-        map.setView([center.lat, center.lng], map.getZoom() || 13, {
-          animate: true
-        })
+        // Check if map container element is fully rendered and attached to the DOM
+        const container = map.getContainer();
+        if (container && document.body.contains(container)) {
+          map.setView([center.lat, center.lng], map.getZoom() || 13, {
+            animate: false // animation එක ඉවත් කිරීම මඟින් _leaflet_pos දෝෂය සම්පූර්ණයෙන්ම වැළකේ
+          })
+        }
       } catch (e) {
         console.error("Map view update error:", e)
       }
@@ -52,7 +56,6 @@ export default function LocationMap({
         scrollWheelZoom={false}
         style={{ height: '100%', width: '100%' }}
         ref={mapRef}
-        // Unique key එක මඟින් කන්ටේනර් රීපූජ් වීම සම්පූර්ණයෙන්ම වළකයි
         key={`${center.lat}-${center.lng}`} 
       >
         <TileLayer
@@ -76,6 +79,11 @@ export default function LocationMap({
               <Popup>
                 <div className="p-1">
                   <h4 className="font-bold text-gray-900 text-sm">{loc.business_name}</h4>
+                  {loc.service_category_id && (
+                    <span className="inline-block text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full my-1">
+                      {loc.service_category_id}
+                    </span>
+                  )}
                   <p className="text-xs text-gray-600 my-1">{loc.address}</p>
                   <a 
                     href={`tel:${loc.phone}`} 

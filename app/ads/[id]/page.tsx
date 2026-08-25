@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { MapPin, Calendar, PhoneCall, Share2, ShieldCheck, Image as ImageIcon, Phone, Check, Clock } from 'lucide-react'
+import { MapPin, Calendar, PhoneCall, Share2, ShieldCheck, Image as ImageIcon, Phone, Check, Clock, Zap, Upload, X, Loader2 } from 'lucide-react'
 
 export default function AdDetailPage() {
   const params = useParams()
@@ -18,6 +18,12 @@ export default function AdDetailPage() {
   // 🌟 Action States
   const [showPhone, setShowPhone] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  // 🚀 Bump Feature States
+  const [isBumpModalOpen, setIsBumpModalOpen] = useState(false)
+  const [slipFile, setSlipFile] = useState<File | null>(null)
+  const [bumpLoading, setBumpLoading] = useState(false)
+  const [bumpSuccess, setBumpSuccess] = useState(false)
 
   useEffect(() => {
     async function fetchAdDetails() {
@@ -66,11 +72,10 @@ export default function AdDetailPage() {
     fetchAdDetails()
   }, [adId])
 
-  // 📞 Call Seller Functionality (Ads ටේබල් එකේ හෝ Profiles වල ඇති දුරකථන අංකය පරීක්ෂා කිරීම)
+  // 📞 Call Seller Functionality
   const phoneNumber = ad?.phone || ad?.contact_number || ad?.profiles?.phone || '0771234567'
 
   const handleCallSeller = (e: React.MouseEvent) => {
-    // Mobile devices වල direct call එකක් initiate කරයි. Desktop එකේදී number එක toggle කර පෙන්වයි.
     if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       e.preventDefault()
       setShowPhone(!showPhone)
@@ -102,6 +107,68 @@ export default function AdDetailPage() {
     }
   }
 
+  // 🚀 Handle Bump Form Submission (Bank Deposit & Slip Upload)
+  const handleBumpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!slipFile) {
+      alert('කරුණාකර බැංකු රිසිට්පත (Slip image) තෝරන්න.')
+      return
+    }
+
+    setBumpLoading(true)
+    try {
+      // 1. Upload slip to Supabase Storage ('slips' bucket)
+      const fileExt = slipFile.name.split('.').pop()
+      const fileName = `${ad.id}_${Date.now()}.${fileExt}`
+      const { error: uploadError } = await supabase.storage
+        .from('slips')
+        .upload(fileName, slipFile)
+
+      if (uploadError) throw uploadError
+
+      // Get public URL of the uploaded slip
+      const { data: publicUrlData } = supabase.storage
+        .from('slips')
+        .getPublicUrl(fileName)
+
+      const slipUrl = publicUrlData.publicUrl
+
+      // 2. Insert record into ad_bumps table
+      const { error: bumpError } = await supabase
+        .from('ad_bumps')
+        .insert([
+          {
+            ad_id: ad.id,
+            payment_method: 'bank_deposit',
+            slip_url: slipUrl,
+            amount: 500.00,
+            status: 'pending'
+          }
+        ])
+
+      if (bumpError) throw bumpError
+
+      // 3. Update ad table status to pending bump
+      await supabase
+        .from('ads')
+        .update({ bump_status: 'pending' })
+        .eq('id', ad.id)
+
+      setBumpSuccess(true)
+      setTimeout(() => {
+        setIsBumpModalOpen(false)
+        setBumpSuccess(false)
+        window.location.reload()
+      }, 2000)
+
+    } catch (err: any) {
+      console.error('Bump error:', err.message)
+      alert('දෝෂයක් සිදු විය: ' + err.message)
+    } finally {
+      setBumpLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -125,7 +192,6 @@ export default function AdDetailPage() {
     )
   }
 
-  // 🛑 Ad එක Deactivated කර ඇත්නම් පෙන්වන පණිවිඩය
   if (ad.status === 'deactivated') {
     return (
       <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -148,7 +214,6 @@ export default function AdDetailPage() {
     )
   }
 
-  // ⏳ Ad එක Pending (Admin Approval එනකම් තියෙන) තත්ත්වයේ ඇත නම් පෙන්වන පණිවිඩය
   if (ad.status === 'pending') {
     return (
       <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -197,8 +262,6 @@ export default function AdDetailPage() {
 
           {/* IMAGE GALLERY COMPONENT */}
           <div className="bg-white p-4 rounded-3xl border shadow-sm space-y-4">
-            
-            {/* Main Featured Image Display */}
             <div className="relative w-full h-[320px] sm:h-[450px] bg-gray-900 rounded-2xl overflow-hidden flex items-center justify-center">
               {selectedImage ? (
                 <img
@@ -214,7 +277,6 @@ export default function AdDetailPage() {
               )}
             </div>
 
-            {/* Sub Thumbnails Strip */}
             {ad.images && ad.images.length > 1 && (
               <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
                 {ad.images.map((imgUrl: string, index: number) => (
@@ -270,7 +332,6 @@ export default function AdDetailPage() {
         {/* RIGHT COLUMN: Price & Seller Contact Card */}
         <div className="space-y-6">
           
-          {/* Price & Contact Card */}
           <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6 sticky top-6">
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase">Price</p>
@@ -295,7 +356,6 @@ export default function AdDetailPage() {
                   {showPhone ? phoneNumber : 'Call Seller'}
                 </a>
 
-                {/* Desktop Screen එකේදී Phone Number එක පහළින් Display කිරීම */}
                 {showPhone && (
                   <div className="bg-orange-50 border border-orange-200 text-orange-900 font-bold text-center py-2 px-3 rounded-xl text-sm flex items-center justify-center gap-2">
                     <Phone className="w-4 h-4 text-orange-600" />
@@ -304,6 +364,15 @@ export default function AdDetailPage() {
                 )}
               </div>
               
+              {/* 🚀 Bump Ad Button */}
+              <button
+                onClick={() => setIsBumpModalOpen(true)}
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-md flex items-center justify-center gap-2 text-sm"
+              >
+                <Zap className="w-4 h-4 fill-yellow-300 text-yellow-300" />
+                <span>🚀 Bump This Ad (Rs. 500)</span>
+              </button>
+
               {/* 🔗 Share Ad Button */}
               <button
                 onClick={handleShareAd}
@@ -339,6 +408,105 @@ export default function AdDetailPage() {
         </div>
 
       </div>
+
+      {/* 🚀 BUMP MODAL / POPUP */}
+      {isBumpModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border space-y-6 relative animate-in fade-in zoom-in duration-200">
+            
+            <div className="flex items-center justify-between border-b pb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-purple-100 text-purple-600 rounded-xl">
+                  <Zap className="w-5 h-5 fill-yellow-400 text-yellow-500" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg">Bump Your Ad</h3>
+                  <p className="text-xs text-gray-500">දැන්වීම ඉහළට ගෙන වැඩි පිරිසකට පෙන්වන්න</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsBumpModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 bg-gray-100 p-2 rounded-full transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {bumpSuccess ? (
+              <div className="py-8 text-center space-y-3">
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="w-8 h-8" />
+                </div>
+                <h4 className="text-lg font-bold text-gray-800">Bump ඉල්ලීම සාර්ථකයි!</h4>
+                <p className="text-xs text-gray-500">බැංකු රිසිට්පත ලැබී ඇත. ඇඩ්මින් අනුමත කළ පසු ඔබේ දැන්වීම Bump වනු ඇත.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleBumpSubmit} className="space-y-4">
+                
+                {/* Bank Details Box */}
+                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 space-y-2 text-xs">
+                  <p className="font-bold text-orange-900 text-sm mb-1">🏦 Bank Account Details</p>
+                  <div className="flex justify-between text-orange-800">
+                    <span className="font-medium">Bank & Branch:</span>
+                    <span className="font-bold">Commercial Bank, Teldeniya</span>
+                  </div>
+                  <div className="flex justify-between text-orange-800">
+                    <span className="font-medium">A/C Number:</span>
+                    <span className="font-bold">8027679803</span>
+                  </div>
+                  <div className="flex justify-between text-orange-800">
+                    <span className="font-medium">A/C Name:</span>
+                    <span className="font-bold">H. M. R. Senanayaka</span>
+                  </div>
+                  <div className="flex justify-between text-orange-900 border-t border-orange-200 pt-2 font-bold text-sm">
+                    <span>Bump Fee:</span>
+                    <span className="text-orange-600">Rs. 500.00</span>
+                  </div>
+                </div>
+
+                {/* File Upload Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-gray-700">
+                    Upload Bank Receipt (Slip Image / PDF)
+                  </label>
+                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 hover:border-purple-500 rounded-2xl p-4 cursor-pointer bg-gray-50 transition">
+                    <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                    <span className="text-xs font-semibold text-gray-600">
+                      {slipFile ? slipFile.name : 'Click to upload slip image'}
+                    </span>
+                    <span className="text-[10px] text-gray-400 mt-0.5">PNG, JPG or PDF</span>
+                    <input 
+                      type="file" 
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={(e) => e.target.files && setSlipFile(e.target.files[0])}
+                    />
+                  </label>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={bumpLoading}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                >
+                  {bumpLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <span>Submit Bump Request</span>
+                  )}
+                </button>
+
+              </form>
+            )}
+
+          </div>
+        </div>
+      )}
+
     </main>
   )
 }

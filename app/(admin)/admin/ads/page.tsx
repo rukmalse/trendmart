@@ -32,7 +32,7 @@ export default function AdminAdsPage() {
     fetchAllAds()
   }, [statusFilter])
 
-  // Status එක වෙනස් කිරීම සඳහා (Active/Approved හෝ Rejected කිරීමට)
+  // Status එක වෙනස් කිරීම සඳහා (නිවැරදි කරන ලදී)
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase
       .from('ads')
@@ -42,20 +42,20 @@ export default function AdminAdsPage() {
     if (error) {
       alert('Failed to update status: ' + error.message)
     } else {
-      // සාර්ථක නම් ලැයිස්තුව යාවත්කාලීන කරන්න
-      setAds((prev) =>
-        prev.map((ad) => (ad.id === id ? { ...ad, status: newStatus } : ad))
-      )
+      // Database එකෙන් අලුත් දත්ත නැවත ලබාගෙන ලැයිස්තුව යාවත්කාලීන කරයි
+      await fetchAllAds()
     }
   }
 
+  // Delete කිරීම සඳහා (නිවැරදි කරන ලදී)
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this ad?')) return
     const { error } = await supabase.from('ads').delete().eq('id', id)
-    if (!error) {
-      setAds((prev) => prev.filter((ad) => ad.id !== id))
-    } else {
+    
+    if (error) {
       alert('Failed to delete: ' + error.message)
+    } else {
+      await fetchAllAds()
     }
   }
 
