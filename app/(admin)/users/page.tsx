@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Users, Search, RefreshCw, Trash2, Calendar, Mail } from 'lucide-react'
 
 const supabase = createClient()
-import { Users, Search, RefreshCw, Trash2, Calendar, Mail, ShieldAlert } from 'lucide-react'
 
 interface UserProfile {
   id: string
   email?: string
   full_name?: string
   created_at: string
-  role?: string // Role එක සඳහා අගය එකතු කරන ලදී
+  role?: string
   ads_count?: number
 }
 

@@ -30,7 +30,7 @@ export default function CreateStorePage() {
     logo_url: '',
   })
 
-  // ස්ටෝර් නම වෙනස් වන විට ස්වයංක්‍රීයව Slug එක සකසා ගැනීම (ಉದಾ: "Cursor Click" -> "cursor-click")
+  // ස්ටෝර් නම වෙනස් වන විට ස්වයංක්‍රීයව Slug එක පසුබිමෙන් සකසා ගැනීම
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     const generatedSlug = val
@@ -58,11 +58,11 @@ export default function CreateStorePage() {
         return
       }
 
-      // ඩේටාබේස් එකට ස්ටෝර් එක ඇතුළත් කිරීම
+      // ඩේටාබේස් එකට ස්ටෝර් එක ඇතුළත් කිරීම (Slug එක ස්වයංක්‍රීයව යවනු ලැබේ)
       const { error } = await supabase.from('stores').insert({
         user_id: user.id,
         store_name: formData.store_name,
-        slug: formData.slug,
+        slug: formData.slug || 'store-' + Date.now(), // Slug එක හිස් වුවහොත් fallback එකක් ලෙස ID එකක් එක්වේ
         description: formData.description,
         phone: formData.phone,
         address: formData.address,
@@ -114,21 +114,7 @@ export default function CreateStorePage() {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Store URL Slug (Unique Link)</label>
-            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-              <Globe className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
-              <span className="text-xs text-gray-400 mr-1">trendmart.lk/store/</span>
-              <input
-                type="text"
-                required
-                value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                placeholder="cursor-click"
-                className="w-full bg-transparent text-sm focus:outline-none font-medium text-gray-800"
-              />
-            </div>
-          </div>
+          {/* 🛑 URL Slug Input කොටස මෙහිදී සම්පූර්ණයෙන්ම ඉවත් කර ඇත (Hidden) */}
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>

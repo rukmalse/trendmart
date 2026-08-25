@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { MapPin, Calendar, PhoneCall, Share2, ShieldCheck, Image as ImageIcon, Phone, Check } from 'lucide-react'
+import { MapPin, Calendar, PhoneCall, Share2, ShieldCheck, Image as ImageIcon, Phone, Check, Clock } from 'lucide-react'
 
 export default function AdDetailPage() {
   const params = useParams()
@@ -23,15 +23,34 @@ export default function AdDetailPage() {
     async function fetchAdDetails() {
       if (!adId) return
 
-      // categories relation එකේ ගැටළුවක් නිසා 404 ඒම වැළැක්වීමට තනි query එකක් ලෙස ලබා ගැනීම
+      // ads ටේබල් එකෙන් සහ profiles ටේබල් එකෙන් දත්ත ලබා ගැනීම
       const { data, error } = await supabase
         .from('ads')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            phone,
+            full_name
+          )
+        `)
         .eq('id', adId)
         .single()
 
       if (error) {
-        console.error('Error fetching ad details:', error.message)
+        console.error('Error fetching ad details with profile:', error.message)
+        // Fallback: සම්බන්ධතා දෝෂයක් මඟහරවා ගැනීමට සාමාන්‍ය query එකක් ක්‍රියාත්මක කිරීම
+        const { data: fallbackData } = await supabase
+          .from('ads')
+          .select('*')
+          .eq('id', adId)
+          .single()
+        
+        if (fallbackData) {
+          setAd(fallbackData)
+          if (fallbackData.images && fallbackData.images.length > 0) {
+            setSelectedImage(fallbackData.images[0])
+          }
+        }
       }
 
       if (data) {
@@ -47,8 +66,8 @@ export default function AdDetailPage() {
     fetchAdDetails()
   }, [adId])
 
-  // 📞 Call Seller Functionality
-  const phoneNumber = ad?.phone || ad?.profiles?.phone || '0771234567'
+  // 📞 Call Seller Functionality (Ads ටේබල් එකේ හෝ Profiles වල ඇති දුරකථන අංකය පරීක්ෂා කිරීම)
+  const phoneNumber = ad?.phone || ad?.contact_number || ad?.profiles?.phone || '0771234567'
 
   const handleCallSeller = (e: React.MouseEvent) => {
     // Mobile devices වල direct call එකක් initiate කරයි. Desktop එකේදී number එක toggle කර පෙන්වයි.
@@ -121,6 +140,29 @@ export default function AdDetailPage() {
           <Link 
             href="/" 
             className="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition"
+          >
+            මුල් පිටුවට යන්න
+          </Link>
+        </div>
+      </main>
+    )
+  }
+
+  // ⏳ Ad එක Pending (Admin Approval එනකම් තියෙන) තත්ත්වයේ ඇත නම් පෙන්වන පණිවිඩය
+  if (ad.status === 'pending') {
+    return (
+      <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-3xl border shadow-sm text-center max-w-md w-full space-y-4">
+          <div className="w-14 h-14 bg-yellow-50 text-yellow-600 rounded-2xl flex items-center justify-center mx-auto">
+            <Clock className="w-7 h-7" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">දැන්වීම සමාලෝචනය වෙමින් පවතී</h2>
+          <p className="text-gray-500 text-sm">
+            මෙම දැන්වීම තවම ඇඩ්මින් විසින් අනුමත කර නැත. අනුමත කළ පසු එය ප්‍රදර්ශනය කෙරේ.
+          </p>
+          <Link 
+            href="/" 
+            className="inline-block w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-sm transition"
           >
             මුල් පිටුවට යන්න
           </Link>
