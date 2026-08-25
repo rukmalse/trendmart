@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, CheckCircle2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-export default function BumpCheckoutPage() {
+function BumpCheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const adId = searchParams.get('ad_id')
@@ -109,5 +109,13 @@ export default function BumpCheckoutPage() {
         </button>
       </form>
     </div>
+  )
+}
+
+export default function BumpCheckoutPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-12 text-gray-500 font-medium">Loading...</div>}>
+      <BumpCheckoutContent />
+    </Suspense>
   )
 }
