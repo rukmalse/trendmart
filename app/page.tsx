@@ -90,12 +90,11 @@ export default function HomePage() {
         }
 
         // 2. Fetch Ads (Active only, with Bumped ads priority sorting)
-        const { data: adsData, error: adsError } = await supabase
+        const { data: adsData, error: adsError } = await (supabase
           .from('ads')
           .select('*')
           .eq('status', 'active')
-          .order('bumped_at', { ascending: false, nullsLast: true }) // ⚡ Bumped ads මුලින්ම පෙන්වීමට
-          .order('created_at', { ascending: false })
+          .order('bumped_at', { ascending: false, nullsLast: true } as any) as any)
 
         if (adsError) {
           console.error('Ads fetch error:', adsError.message)
@@ -233,7 +232,7 @@ export default function HomePage() {
           
           {/* Live Active Ads Count Badge */}
           <div className="flex justify-center items-center mb-4">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-white/10 text-white border border-white/20 backdrop-blur-md shadow-sm">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-white/10 text-white border border-white/25 backdrop-blur-md shadow-sm">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping absolute"></span>
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 relative"></span>
               🔥 <strong className="text-orange-300 ml-1">{allAds.length}</strong> Active Ads Live Across Sri Lanka
