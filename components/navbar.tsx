@@ -157,7 +157,7 @@ export default function Navbar() {
 
                 <Link href="/dashboard/my-ads" className="flex items-center gap-1 font-bold text-gray-700 hover:text-orange-600 transition" title="My Ads">
                   <Briefcase className="w-3.5 h-3.5 text-orange-500" />
-                  <span>My Ads</span>
+                  <span>My Jobs</span>
                 </Link>
 
                 <span className="text-gray-300">|</span>

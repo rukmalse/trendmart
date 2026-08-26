@@ -110,7 +110,7 @@ export default function CreateStorePage() {
               value={formData.store_name}
               onChange={handleNameChange}
               placeholder="e.g. Cursor-Click IT Solutions"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 font-medium"
+              className="w-full px-4 py-3 bg-white text-gray-900 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 font-medium"
             />
           </div>
 
@@ -119,7 +119,7 @@ export default function CreateStorePage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Phone Number</label>
-              <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+              <div className="flex items-center bg-white text-gray-900 border border-gray-200 rounded-xl px-4 py-3">
                 <Phone className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
                 <input
                   type="text"
@@ -127,7 +127,7 @@ export default function CreateStorePage() {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="0760661264"
-                  className="w-full bg-transparent text-sm focus:outline-none font-medium"
+                  className="w-full bg-transparent text-gray-900 text-sm focus:outline-none font-medium"
                 />
               </div>
             </div>
@@ -137,7 +137,7 @@ export default function CreateStorePage() {
               <select
                 value={formData.district}
                 onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none font-medium cursor-pointer"
+                className="w-full px-4 py-3 bg-white text-gray-900 border border-gray-200 rounded-xl text-sm focus:outline-none font-medium cursor-pointer"
               >
                 {sriLankaDistricts.map((d) => (
                   <option key={d} value={d}>{d}</option>
@@ -148,14 +148,14 @@ export default function CreateStorePage() {
 
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Store Address</label>
-            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+            <div className="flex items-center bg-white text-gray-900 border border-gray-200 rounded-xl px-4 py-3">
               <MapPin className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
               <input
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="No: 22/1/2, Kandewatta Road, Randeniya"
-                className="w-full bg-transparent text-sm focus:outline-none font-medium"
+                className="w-full bg-transparent text-gray-900 text-sm focus:outline-none font-medium"
               />
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function CreateStorePage() {
               value={formData.logo_url}
               onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
               placeholder="https://example.com/logo.png"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none font-medium"
+              className="w-full px-4 py-3 bg-white text-gray-900 border border-gray-200 rounded-xl text-sm focus:outline-none font-medium"
             />
           </div>
 
@@ -178,7 +178,7 @@ export default function CreateStorePage() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Write a short description about your business..."
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none font-medium resize-none"
+              className="w-full px-4 py-3 bg-white text-gray-900 border border-gray-200 rounded-xl text-sm focus:outline-none font-medium resize-none"
             />
           </div>
 

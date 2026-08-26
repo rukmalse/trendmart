@@ -123,13 +123,13 @@ export default function MyAdsPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link 
-              href="/services/create" 
+              href="/post-job" 
               className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 transition shadow-sm"
             >
               <PlusCircle className="w-4 h-4" /> Post Service
             </Link>
             <Link 
-              href="/jobs/create" 
+              href="/jobs" 
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 transition shadow-sm"
             >
               <PlusCircle className="w-4 h-4" /> Post Job / Manpower

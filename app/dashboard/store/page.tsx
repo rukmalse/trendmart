@@ -26,14 +26,21 @@ export default function ManageStorePage() {
         return
       }
 
+      // `.maybeSingle()` වෙනුවට `.limit(1)` භාවිතා කර errors මඟහරවා ගැනීම
       const { data, error } = await supabase
         .from('stores')
         .select('*')
         .eq('user_id', user.id)
-        .maybeSingle()
+        .limit(1)
 
       if (error) throw error
-      setStore(data)
+
+      // ඩේටා තිබේ නම් පළමු එක store state එකට ලබා දීම
+      if (data && data.length > 0) {
+        setStore(data[0])
+      } else {
+        setStore(null)
+      }
     } catch (err: any) {
       console.error('Error fetching store:', err.message)
     } finally {
@@ -125,7 +132,7 @@ export default function ManageStorePage() {
               {/* Action Buttons */}
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <Link
-                  href="/stores/edit"
+                  href={`/stores/edit?id=${store.id}`}
                   className="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center transition"
                 >
                   <Edit3 className="w-4 h-4 mr-1.5 text-blue-600" /> Edit Store

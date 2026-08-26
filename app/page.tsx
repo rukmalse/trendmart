@@ -12,7 +12,7 @@ import {
   Car, Home, Building2, Smartphone, Tv, Flower2, Dog, 
   Tractor, Wrench, Shirt, Trophy, Factory, GraduationCap, 
   ShoppingBag, Briefcase, Globe2, X, Award, Heart, Store, ArrowRight, SlidersHorizontal, Zap,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Gem
 } from 'lucide-react'
 
 const sriLankaDistricts = [
@@ -36,7 +36,7 @@ const LocationMap = dynamic(() => import('@/components/LocationMap'), {
 const iconMap: Record<string, any> = {
   Car, Home, Building2, Smartphone, Tv, Flower2, Dog, 
   Tractor, Wrench, Shirt, Trophy, Factory, GraduationCap, 
-  ShoppingBag, Briefcase, Globe2, Tag
+  ShoppingBag, Briefcase, Globe2, Tag, Gem
 }
 
 export default function HomePage() {

@@ -111,7 +111,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
               required
               value={formData.title} 
               onChange={handleChange}
-              className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-blue-600"
+              className="w-full p-3 bg-white text-gray-900 border rounded-xl text-sm focus:outline-blue-600"
             />
           </div>
 
@@ -122,7 +122,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                 name="category" 
                 value={formData.category} 
                 onChange={handleChange}
-                className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-blue-600"
+                className="w-full p-3 bg-white text-gray-900 border rounded-xl text-sm focus:outline-blue-600"
               >
                 <option value="Manpower">Manpower</option>
                 <option value="Job">Job Vacancy</option>
@@ -135,7 +135,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                 name="location" 
                 value={formData.location} 
                 onChange={handleChange}
-                className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-blue-600"
+                className="w-full p-3 bg-white text-gray-900 border rounded-xl text-sm focus:outline-blue-600"
               />
             </div>
           </div>
@@ -148,7 +148,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                 name="phone" 
                 value={formData.phone} 
                 onChange={handleChange}
-                className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-blue-600"
+                className="w-full p-3 bg-white text-gray-900 border rounded-xl text-sm focus:outline-blue-600"
               />
             </div>
             <div>
@@ -158,7 +158,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                 name="whatsapp" 
                 value={formData.whatsapp} 
                 onChange={handleChange}
-                className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-blue-600"
+                className="w-full p-3 bg-white text-gray-900 border rounded-xl text-sm focus:outline-blue-600"
               />
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
               rows={4}
               value={formData.description} 
               onChange={handleChange}
-              className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-blue-600"
+              className="w-full p-3 bg-white text-gray-900 border rounded-xl text-sm focus:outline-blue-600"
             ></textarea>
           </div>
 

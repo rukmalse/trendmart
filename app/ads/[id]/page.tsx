@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { MapPin, Calendar, PhoneCall, Share2, ShieldCheck, Image as ImageIcon, Phone, Check, Clock, Zap, Upload, X, Loader2 } from 'lucide-react'
+import { MapPin, Calendar, PhoneCall, Share2, ShieldCheck, Image as ImageIcon, Phone, Check, Clock, Zap, Upload, X, Loader2, CheckCircle2 } from 'lucide-react'
 
 export default function AdDetailPage() {
   const params = useParams()
@@ -14,6 +14,11 @@ export default function AdDetailPage() {
   const [ad, setAd] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+
+  // 🛡️ Admin & User States
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [approving, setApproving] = useState(false)
 
   // 🌟 Action States
   const [showPhone, setShowPhone] = useState(false)
@@ -29,48 +34,89 @@ export default function AdDetailPage() {
     async function fetchAdDetails() {
       if (!adId) return
 
-      // ads ටේබල් එකෙන් සහ profiles ටේබල් එකෙන් දත්ත ලබා ගැනීම
-      const { data, error } = await supabase
-        .from('ads')
-        .select(`
-          *,
-          profiles:user_id (
-            phone,
-            full_name
-          )
-        `)
-        .eq('id', adId)
-        .single()
-
-      if (error) {
-        console.error('Error fetching ad details with profile:', error.message)
-        // Fallback: සම්බන්ධතා දෝෂයක් මඟහරවා ගැනීමට සාමාන්‍ය query එකක් ක්‍රියාත්මක කිරීම
-        const { data: fallbackData } = await supabase
-          .from('ads')
-          .select('*')
-          .eq('id', adId)
-          .single()
-        
-        if (fallbackData) {
-          setAd(fallbackData)
-          if (fallbackData.images && fallbackData.images.length > 0) {
-            setSelectedImage(fallbackData.images[0])
+      try {
+        // 1. Get current logged-in user
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          setCurrentUserId(user.id)
+          
+          // Check if user is admin using 'profiles' table
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+          
+          if (profile && profile.role === 'admin') {
+            setIsAdmin(true)
           }
         }
-      }
 
-      if (data) {
-        setAd(data)
-        // පළමු Image එක Primary Photo ලෙස set කිරීම
-        if (data.images && data.images.length > 0) {
-          setSelectedImage(data.images[0])
+        // 2. Fetch ad details with profile
+        const { data, error } = await supabase
+          .from('ads')
+          .select(`
+            *,
+            profiles:user_id (
+              phone,
+              full_name
+            )
+          `)
+          .eq('id', adId)
+          .single()
+
+        if (error) {
+          console.error('Error fetching ad details with profile:', error.message)
+          // Fallback query
+          const { data: fallbackData } = await supabase
+            .from('ads')
+            .select('*')
+            .eq('id', adId)
+            .single()
+          
+          if (fallbackData) {
+            setAd(fallbackData)
+            if (fallbackData.images && fallbackData.images.length > 0) {
+              setSelectedImage(fallbackData.images[0])
+            }
+          }
         }
+
+        if (data) {
+          setAd(data)
+          if (data.images && data.images.length > 0) {
+            setSelectedImage(data.images[0])
+          }
+        }
+      } catch (err) {
+        console.error('Error in fetchAdDetails:', err)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     fetchAdDetails()
   }, [adId])
+
+  // Direct Admin Approve Handler
+  const handleApproveAd = async () => {
+    setApproving(true)
+    try {
+      const { error } = await supabase
+        .from('ads')
+        .update({ is_approved: true, status: 'active' })
+        .eq('id', ad.id)
+
+      if (error) throw error
+
+      alert('දැන්වීම සාර්ථකව අනුමත කරන ලදී!')
+      window.location.reload()
+    } catch (err: any) {
+      alert('දෝෂයක් සිදු විය: ' + err.message)
+    } finally {
+      setApproving(false)
+    }
+  }
 
   // 📞 Call Seller Functionality
   const phoneNumber = ad?.phone || ad?.contact_number || ad?.profiles?.phone || '0771234567'
@@ -107,7 +153,7 @@ export default function AdDetailPage() {
     }
   }
 
-  // 🚀 Handle Bump Form Submission (Bank Deposit & Slip Upload)
+  // 🚀 Handle Bump Form Submission
   const handleBumpSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!slipFile) {
@@ -117,7 +163,6 @@ export default function AdDetailPage() {
 
     setBumpLoading(true)
     try {
-      // 1. Upload slip to Supabase Storage ('slips' bucket)
       const fileExt = slipFile.name.split('.').pop()
       const fileName = `${ad.id}_${Date.now()}.${fileExt}`
       const { error: uploadError } = await supabase.storage
@@ -126,14 +171,12 @@ export default function AdDetailPage() {
 
       if (uploadError) throw uploadError
 
-      // Get public URL of the uploaded slip
       const { data: publicUrlData } = supabase.storage
         .from('slips')
         .getPublicUrl(fileName)
 
       const slipUrl = publicUrlData.publicUrl
 
-      // 2. Insert record into ad_bumps table
       const { error: bumpError } = await supabase
         .from('ad_bumps')
         .insert([
@@ -148,7 +191,6 @@ export default function AdDetailPage() {
 
       if (bumpError) throw bumpError
 
-      // 3. Update ad table status to pending bump
       await supabase
         .from('ads')
         .update({ bump_status: 'pending' })
@@ -214,7 +256,11 @@ export default function AdDetailPage() {
     )
   }
 
-  if (ad.status === 'pending') {
+  // 🛡️ ACCESS CONTROL: 
+  const isOwner = currentUserId && ad.user_id === currentUserId
+  const isPendingApproval = ad.is_approved === false || ad.status === 'pending'
+
+  if (isPendingApproval && !isAdmin && !isOwner) {
     return (
       <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <div className="bg-white p-8 rounded-3xl border shadow-sm text-center max-w-md w-full space-y-4">
@@ -237,8 +283,30 @@ export default function AdDetailPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <main className="min-h-screen bg-gray-50 pb-12">
+      
+      {/* 🚀 ADMIN / OWNER PREVIEW NOTIFICATION BANNER */}
+      {isPendingApproval && (
+        <div className="bg-amber-500 text-black px-4 py-3 shadow-md sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-bold">
+            <Clock className="w-5 h-5 shrink-0" />
+            <span>⚠️ මෙය තවම අනුමත නොකළ (Pending) දැන්වීමකි. පෙනෙන්නේ ඇඩ්මින් / හිමිකරු ඔබට පමණි.</span>
+          </div>
+
+          {isAdmin && (
+            <button
+              onClick={handleApproveAd}
+              disabled={approving}
+              className="bg-black hover:bg-gray-900 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition ml-auto disabled:opacity-50"
+            >
+              {approving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 text-green-400" />}
+              <span>Approve Ad Now</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* LEFT COLUMN: Image Gallery & Description */}
         <div className="lg:col-span-2 space-y-6">
@@ -332,7 +400,7 @@ export default function AdDetailPage() {
         {/* RIGHT COLUMN: Price & Seller Contact Card */}
         <div className="space-y-6">
           
-          <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6 sticky top-6">
+          <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6 sticky top-20">
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase">Price</p>
               <p className="text-3xl font-extrabold text-orange-600 mt-1">
