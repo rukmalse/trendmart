@@ -180,11 +180,11 @@ export default function Navbar() {
             )
           )}
 
-          <Link href="/services/create" className="text-xs font-bold px-3 py-2 rounded-xl border transition" style={{ color: siteSettings.primary_color, backgroundColor: `${siteSettings.primary_color}10`, borderColor: `${siteSettings.primary_color}30` }}>
+          <Link href="/post-job" className="text-xs font-bold px-3 py-2 rounded-xl border transition" style={{ color: siteSettings.primary_color, backgroundColor: `${siteSettings.primary_color}10`, borderColor: `${siteSettings.primary_color}30` }}>
             + Post Service
           </Link>
 
-          <Link href="/jobs/create" className="text-xs font-bold text-white px-4 py-2 rounded-xl shadow transition" style={{ backgroundColor: siteSettings.primary_color }}>
+          <Link href="/jobs" className="text-xs font-bold text-white px-4 py-2 rounded-xl shadow transition" style={{ backgroundColor: siteSettings.primary_color }}>
             + Post Job
           </Link>
         </div>
@@ -192,7 +192,7 @@ export default function Navbar() {
         {/* 4. Mobile Menu Toggle & Quick Buttons */}
         <div className="flex md:hidden items-center space-x-2">
           <Link 
-            href="/services/create" 
+            href="/post-job" 
             className="text-[11px] font-bold text-white px-2.5 py-1.5 rounded-lg shadow"
             style={{ backgroundColor: siteSettings.primary_color }}
           >

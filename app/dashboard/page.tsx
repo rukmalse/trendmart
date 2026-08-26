@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Tag, Trash2, Eye, RefreshCw, Edit, Zap, User, Mail, Phone, MapPin, Heart, Save, Loader2, Camera, Store, Upload, CheckCircle, Megaphone, PlusCircle } from 'lucide-react'
+import { ArrowLeft, Plus, Tag, Trash2, Eye, RefreshCw, Edit, Zap, User, Mail, Phone, MapPin, Heart, Save, Loader2, Camera, Store, Upload, CheckCircle, Megaphone, PlusCircle, ArrowUpCircle, CreditCard } from 'lucide-react'
 
 export default function DashboardPage() {
   const supabase = createClient()
@@ -613,11 +613,35 @@ export default function DashboardPage() {
 
       {/* Slip Upload Modal Popup */}
       {showSlipModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 my-8 max-h-[90vh] overflow-y-auto">
+            
+            {/* Header */}
             <div className="flex items-center justify-between border-b pb-4">
-              <h3 className="font-bold text-gray-900 text-lg">Upload Bank Slip for Bump</h3>
+              <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                <ArrowUpCircle className="w-5 h-5 text-orange-500" />
+                <span>Upload Bank Slip for Bump</span>
+              </h3>
               <button onClick={() => setShowSlipModal(false)} className="text-gray-400 hover:text-gray-600 font-bold text-xl">×</button>
+            </div>
+
+            {/* බැංකු ගිණුම් විස්තර කොටස */}
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-2 text-xs text-blue-950 shadow-sm">
+              <div className="flex items-center gap-2 font-bold text-blue-900 text-sm mb-1">
+                <CreditCard className="w-4 h-4 text-blue-600" />
+                <span>ගෙවීම් කළ යුතු බැංකු ගිණුම් විස්තර</span>
+              </div>
+
+              <div className="space-y-1 font-medium text-gray-700 leading-relaxed">
+                <p>ගිණුමේ නම: <span className="font-bold text-gray-900">H M R Senanayaka</span></p>
+                <p>ගිණුම් අංකය: <span className="font-bold text-gray-900 select-all bg-white px-1.5 py-0.5 rounded border border-blue-100">8027679803</span></p>
+                <p>බැංකුව සහ ශාඛාව: <span className="font-bold text-gray-900">Commercial Bank, Teldeniya</span></p>
+              </div>
+
+              <div className="pt-2 border-t border-blue-200/80 font-bold text-blue-900 text-sm flex justify-between items-center">
+                <span>ගාස්තුව:</span>
+                <span className="text-orange-600 font-extrabold text-base">Rs. 500.00</span>
+              </div>
             </div>
 
             <form onSubmit={handleSlipSubmit} className="space-y-4">
