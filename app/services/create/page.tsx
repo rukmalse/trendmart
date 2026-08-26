@@ -78,7 +78,7 @@ export default function CreateServicePage() {
               value={formData.business_name} 
               onChange={handleChange}
               placeholder="උදා: Electrical & Wiring Services / Mason Works"
-              className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-orange-500"
+              className="w-full p-3 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
@@ -89,7 +89,7 @@ export default function CreateServicePage() {
                 name="category" 
                 value={formData.category} 
                 onChange={handleChange}
-                className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-orange-500"
+                className="w-full p-3 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 <option value="Service">General Service</option>
                 <option value="Manpower">Manpower / Job</option>
@@ -103,7 +103,7 @@ export default function CreateServicePage() {
                 value={formData.address} 
                 onChange={handleChange}
                 placeholder="උදා: Dambulla"
-                className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-orange-500"
+                className="w-full p-3 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function CreateServicePage() {
                 value={formData.phone} 
                 onChange={handleChange}
                 placeholder="0771234567"
-                className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-orange-500"
+                className="w-full p-3 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
             <div>
@@ -128,7 +128,7 @@ export default function CreateServicePage() {
                 value={formData.whatsapp} 
                 onChange={handleChange}
                 placeholder="0771234567"
-                className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-orange-500"
+                className="w-full p-3 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
           </div>
@@ -141,7 +141,7 @@ export default function CreateServicePage() {
               value={formData.description} 
               onChange={handleChange}
               placeholder="ඔබ සපයන සේවාව පිළිබඳව විස්තරයක් මෙහි ලියන්න..."
-              className="w-full p-3 bg-gray-50 border rounded-xl text-sm focus:outline-orange-500"
+              className="w-full p-3 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
             ></textarea>
           </div>
 
