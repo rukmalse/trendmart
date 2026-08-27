@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle2, XCircle, Trash2, Clock, RefreshCw, Zap, Eye, CreditCard, Image as ImageIcon } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface Ad {
   id: string
@@ -28,7 +29,7 @@ interface BumpRequest {
   ads?: {
     title: string
     price: number
-  }
+  } | null
 }
 
 interface PaymentRequest {
@@ -55,98 +56,126 @@ interface BannerRequest {
   created_at: string
 }
 
-export default function AdminMainDashboard() {
+export default function SuperAdminMainDashboard() {
   const [pendingAds, setPendingAds] = useState<Ad[]>([])
   const [bumpAds, setBumpAds] = useState<BumpRequest[]>([])
   const [pendingPayments, setPendingPayments] = useState<PaymentRequest[]>([])
   const [bannerRequests, setBannerRequests] = useState<BannerRequest[]>([])
   
   const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading]  = useState<string | null>(null)
-  
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [selectedSlip, setSelectedSlip] = useState<string | null>(null)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false) // Super Admin authorization state එක
   
   const supabase = createClient()
+  const router = useRouter()
 
-  // 1. Fetch Data
+  // 0. Check Super Admin Authorization & Fetch Data
+  useEffect(() => {
+    const verifySuperAdminAndFetch = async () => {
+      setLoading(true)
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+        if (userError || !user) {
+          router.replace('/login') // Login වී නැත්නම් login page එකට යවන්න
+          return
+        }
+
+        // Database එකෙන් user ගේ role එක පරීක්ෂා කිරීම (profiles table එක පාවිච්චි කර ඇත)
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        // Super Admin කෙනෙක් නොවේ නම් (role එක 'super-admin' නොවේ නම්) කෙලින්ම Home page එකට redirect කරන්න
+        if (profileError || profile?.role !== 'super-admin') {
+          router.replace('/') 
+          return
+        }
+
+        // Super Admin කෙනෙක් නම් පමණක් true කර data fetch කරගන්න
+        setIsSuperAdmin(true)
+        await fetchData()
+
+      } catch (err) {
+        console.error('Authorization error:', err)
+        router.replace('/')
+      }
+    }
+
+    verifySuperAdminAndFetch()
+  }, [])
+
+  // 1. Fetch Data (Optimized with Supabase Joins for Bumps)
   const fetchData = async () => {
-    setLoading(true)
+    try {
+      // Fetch Pending Ads in parallel
+      const adsPromise = supabase
+        .from('ads')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
 
-    // Fetch Pending Ads
-    const { data: adsData } = await supabase
-      .from('ads')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
+      // Fetch Pending Bump Requests using Supabase Foreign Key Relationship (Join)
+      const bumpsPromise = supabase
+        .from('ad_bumps')
+        .select(`
+          *,
+          ads (
+            title,
+            price
+          )
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
 
-    if (adsData) setPendingAds(adsData)
+      // Fetch Pending Bank Payments
+      const paymentsPromise = supabase
+        .from('payments')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
 
-    // Fetch Pending Bump Requests
-    const { data: bumpsData, error: bumpsError } = await supabase
-      .from('ad_bumps') 
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
+      // Fetch Pending Banner Requests
+      const bannersPromise = supabase
+        .from('banner_requests')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
 
-    if (bumpsError) {
-      console.error('Error fetching bumps:', bumpsError.message)
+      const [
+        { data: adsData, error: adsError },
+        { data: bumpsData, error: bumpsError },
+        { data: paymentsData, error: paymentsError },
+        { data: bannersData, error: bannersError }
+      ] = await Promise.all([adsPromise, bumpsPromise, paymentsPromise, bannersPromise])
+
+      if (adsError) console.error('Error fetching ads:', adsError.message)
+      if (bumpsError) console.error('Error fetching bumps:', bumpsError.message)
+      if (paymentsError) console.error('Error fetching payments:', paymentsError.message)
+      if (bannersError) console.error('Error fetching banners:', bannersError.message)
+
+      if (adsData) setPendingAds(adsData)
+      if (bumpsData) setBumpAds(bumpsData as BumpRequest[])
+      if (paymentsData) setPendingPayments(paymentsData)
+      if (bannersData) setBannerRequests(bannersData)
+
+    } catch (err) {
+      console.error('Unexpected error fetching dashboard data:', err)
+    } finally {
+      setLoading(false)
     }
-
-    if (bumpsData && bumpsData.length > 0) {
-      const enrichedBumps = await Promise.all(
-        bumpsData.map(async (bump) => {
-          let adDetails = { title: 'View Advertisement', price: 0 }
-          if (bump.ad_id) {
-            const { data: singleAd } = await supabase
-              .from('ads')
-              .select('title, price')
-              .eq('id', bump.ad_id)
-              .single()
-            
-            if (singleAd) {
-              adDetails = singleAd
-            }
-          }
-          return {
-            ...bump,
-            ads: adDetails
-          }
-        })
-      )
-      setBumpAds(enrichedBumps as BumpRequest[])
-    } else {
-      setBumpAds([])
-    }
-
-    // Fetch Pending Bank Payments
-    const { data: paymentsData, error: paymentsError } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-
-    if (paymentsError) {
-      console.error('Error fetching payments:', paymentsError.message)
-    }
-    if (paymentsData) setPendingPayments(paymentsData)
-
-    // Fetch Pending Banner Requests
-    const { data: bannersData, error: bannersError } = await supabase
-      .from('banner_requests')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-
-    if (bannersError) {
-      console.error('Error fetching banners:', bannersError.message)
-    }
-    if (bannersData) setBannerRequests(bannersData)
-
-    setLoading(false)
   }
 
+  // Close modal on ESC key
   useEffect(() => {
-    fetchData()
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedSlip(null)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   // 2. Approve or Reject Ad Status
@@ -181,7 +210,7 @@ export default function AdminMainDashboard() {
     }
 
     if (adId) {
-      const updatePayload: any = { 
+      const updatePayload: { bump_status: string; bumped_at?: string } = { 
         bump_status: actionType === 'approved' ? 'approved' : 'rejected' 
       }
 
@@ -252,18 +281,30 @@ export default function AdminMainDashboard() {
     setActionLoading(null)
   }
 
+  // Super Admin කෙනෙක් නොවේ නම් හෝ role එක check වෙනකම් loading screen එක පමණක් පෙන්වීම
+  if (!isSuperAdmin) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-600 text-sm font-medium">Verifying super-admin permissions...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Admin Quick Overview</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Super Admin Quick Overview</h1>
           <p className="text-gray-500 text-sm mt-1">Review pending advertisements, bump requests, banner requests and bank payment slips.</p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition cursor-pointer disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
@@ -321,7 +362,7 @@ export default function AdminMainDashboard() {
                       {banner.banner_url ? (
                         <button
                           onClick={() => setSelectedSlip(banner.banner_url)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-semibold transition shadow-sm"
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-semibold transition shadow-sm cursor-pointer"
                         >
                           <Eye className="w-4 h-4" /> View Banner
                         </button>
@@ -333,7 +374,7 @@ export default function AdminMainDashboard() {
                       {banner.payment_slip_url ? (
                         <button
                           onClick={() => setSelectedSlip(banner.payment_slip_url)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition shadow-sm"
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition shadow-sm cursor-pointer"
                         >
                           <Eye className="w-4 h-4" /> View Slip
                         </button>
@@ -346,14 +387,14 @@ export default function AdminMainDashboard() {
                         <button
                           onClick={() => handleUpdateBannerStatus(banner.id, 'approved')}
                           disabled={actionLoading === banner.id}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
                         >
                           <CheckCircle2 className="w-4 h-4" /> Approve
                         </button>
                         <button
                           onClick={() => handleUpdateBannerStatus(banner.id, 'rejected')}
                           disabled={actionLoading === banner.id}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
                         >
                           <XCircle className="w-4 h-4" /> Reject
                         </button>
@@ -410,7 +451,7 @@ export default function AdminMainDashboard() {
                       {payment.slip_url ? (
                         <button
                           onClick={() => setSelectedSlip(payment.slip_url)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition shadow-sm"
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition shadow-sm cursor-pointer"
                         >
                           <Eye className="w-4 h-4" /> View Slip
                         </button>
@@ -423,14 +464,14 @@ export default function AdminMainDashboard() {
                         <button
                           onClick={() => handleUpdatePaymentStatus(payment.id, 'approved')}
                           disabled={actionLoading === payment.id}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
                         >
                           <CheckCircle2 className="w-4 h-4" /> Approve
                         </button>
                         <button
                           onClick={() => handleUpdatePaymentStatus(payment.id, 'rejected')}
                           disabled={actionLoading === payment.id}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
                         >
                           <XCircle className="w-4 h-4" /> Reject
                         </button>
@@ -489,7 +530,7 @@ export default function AdminMainDashboard() {
                       {item.slip_url ? (
                         <button
                           onClick={() => setSelectedSlip(item.slip_url)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg text-xs font-semibold transition shadow-sm"
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg text-xs font-semibold transition shadow-sm cursor-pointer"
                         >
                           <Eye className="w-4 h-4" /> View Slip
                         </button>
@@ -502,14 +543,14 @@ export default function AdminMainDashboard() {
                         <button
                           onClick={() => handleUpdateBumpStatus(item.id, item.ad_id, 'approved')}
                           disabled={actionLoading === item.id}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
                         >
                           <CheckCircle2 className="w-4 h-4" /> Approve Bump
                         </button>
                         <button
                           onClick={() => handleUpdateBumpStatus(item.id, item.ad_id, 'rejected')}
                           disabled={actionLoading === item.id}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg text-xs font-semibold transition"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
                         >
                           <XCircle className="w-4 h-4" /> Reject
                         </button>
@@ -583,7 +624,7 @@ export default function AdminMainDashboard() {
                         <button
                           onClick={() => handleUpdateStatus(ad.id, 'active')}
                           disabled={actionLoading === ad.id}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
                           title="Approve Ad"
                         >
                           <CheckCircle2 className="w-4 h-4" />
@@ -593,7 +634,7 @@ export default function AdminMainDashboard() {
                         <button
                           onClick={() => handleUpdateStatus(ad.id, 'rejected')}
                           disabled={actionLoading === ad.id}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold transition"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
                           title="Reject Ad"
                         >
                           <XCircle className="w-4 h-4" />
@@ -603,7 +644,7 @@ export default function AdminMainDashboard() {
                         <button
                           onClick={() => handleDeleteAd(ad.id)}
                           disabled={actionLoading === ad.id}
-                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-50 cursor-pointer"
                           title="Delete Ad"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -620,13 +661,19 @@ export default function AdminMainDashboard() {
 
       {/* ---------------- SLIP / BANNER PREVIEW MODAL ---------------- */}
       {selectedSlip && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 relative shadow-2xl space-y-4">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setSelectedSlip(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-2xl w-full p-6 relative shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="text-lg font-bold text-gray-800">Preview Image</h3>
               <button
                 onClick={() => setSelectedSlip(null)}
-                className="text-gray-400 hover:text-gray-600 font-bold text-xl px-2"
+                className="text-gray-400 hover:text-gray-600 font-bold text-xl px-2 cursor-pointer"
               >
                 ✕
               </button>
@@ -651,7 +698,7 @@ export default function AdminMainDashboard() {
               </a>
               <button
                 onClick={() => setSelectedSlip(null)}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition cursor-pointer"
               >
                 Close
               </button>

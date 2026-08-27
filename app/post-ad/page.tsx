@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { PlusCircle, Upload, X, Store } from 'lucide-react'
+import { PlusCircle, Upload, X, Store, Tag } from 'lucide-react'
 
 // Sri Lanka Districts List (සම්පූර්ණ දිස්ත්‍රික්ක 25)
 const sriLankaDistricts = [
@@ -12,26 +12,6 @@ const sriLankaDistricts = [
   "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee",
   "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla",
   "Moneragala", "Ratnapura", "Kegalle"
-];
-
-// ikman.lk Style Categories 16
-const categories = [
-  { id: 'vehicles', name: 'Vehicles' },
-  { id: 'properties-sale', name: 'Properties for Sale' },
-  { id: 'properties-rent', name: 'Properties for Rent' },
-  { id: 'mobile-phones', name: 'Mobile Phones' },
-  { id: 'electronics', name: 'Electronics' },
-  { id: 'home-garden', name: 'Home & Garden' },
-  { id: 'pets-animals', name: 'Pets & Animals' },
-  { id: 'agriculture', name: 'Agriculture' },
-  { id: 'services', name: 'Services' },
-  { id: 'fashion-beauty', name: 'Fashion & Beauty' },
-  { id: 'hobby-sports-kids', name: 'Hobby, Sports & Kids' },
-  { id: 'business-industrial', name: 'Business & Industrial' },
-  { id: 'education-training', name: 'Education & Training' },
-  { id: 'essentials-grocery', name: 'Essentials & Grocery' },
-  { id: 'jobs-sri-lanka', name: 'Jobs in Sri Lanka' },
-  { id: 'work-overseas', name: 'Work Overseas' },
 ];
 
 function PostAdForm() {
@@ -44,10 +24,11 @@ function PostAdForm() {
 
   const [loading, setLoading] = useState(false)
   const [userStores, setUserStores] = useState<any[]>([]) // පරිශීලකයාගේ Stores ලැයිස්තුව
+  const [categories, setCategories] = useState<any[]>([]) // 🌟 ඩේටාබේස් එකෙන් එන Categories ලැයිස්තුව සඳහා State එකක්
 
   // Form States
   const [title, setTitle] = useState('')
-  const [categoryId, setCategoryId] = useState('')
+  const [categoryId, setCategoryId] = useState('') // මෙහි දැන් store වන්නේ Category එකේ UUID එකයි
   const [price, setPrice] = useState('')
   const [condition, setCondition] = useState('used')
   const [district, setDistrict] = useState('Colombo')
@@ -59,9 +40,26 @@ function PostAdForm() {
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
 
-  // Page Load වන විට User ගේ Stores ලැයිස්තුව Fetch කර ගැනීම
+  // 🌟 Page Load වන විට User ගේ Stores සහ Database එකෙන් Categories ඩයිනමික් ලෙස Fetch කර ගැනීම
   useEffect(() => {
-    const fetchUserStores = async () => {
+    const fetchData = async () => {
+      // 1. Fetch Categories from Database
+      const { data: catData, error: catError } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name', { ascending: true })
+
+      if (catError) {
+        console.error('Error fetching categories:', catError.message)
+      } else if (catData) {
+        // අනුපිටපත් (duplicates) වැළැක්වීම සඳහා
+        const uniqueCategories = Array.from(
+          new Map(catData.map(item => [item.name?.trim().toLowerCase(), item])).values()
+        )
+        setCategories(uniqueCategories)
+      }
+
+      // 2. Fetch User Stores
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data: stores } = await supabase
@@ -74,7 +72,7 @@ function PostAdForm() {
         }
       }
     }
-    fetchUserStores()
+    fetchData()
   }, [supabase])
 
   // Images Select කරන අවස්ථාව (Max 10 Validation)
@@ -119,24 +117,9 @@ function PostAdForm() {
       return
     }
 
-    // 2. Supabase ඩේටාබේස් එකේ 'categories' ටේබල් එකෙන් අදාළ slug එකට අදාළ UUID එක ලබා ගැනීම
-    const { data: catData, error: catError } = await supabase
-      .from('categories')
-      .select('id')
-      .eq('slug', categoryId)
-      .single()
-
-    if (catError || !catData) {
-      alert('Database Error: Selected category not found or categories table does not match this slug (' + categoryId + '). Please check your Supabase categories table.')
-      setLoading(false)
-      return
-    }
-
-    const categoryUuid = catData.id
-
     const uploadedImageUrls: string[] = []
 
-    // 3. Images Supabase Storage එකට Upload කිරීම
+    // 2. Images Supabase Storage එකට Upload කිරීම
     if (imageFiles.length > 0) {
       for (const file of imageFiles) {
         const fileExt = file.name.split('.').pop()
@@ -161,13 +144,13 @@ function PostAdForm() {
       }
     }
 
-    // 4. සැබෑ UUID සහ Store ID (තිබේ නම්) සමග Ad එක Database එකට Insert කිරීම
+    // 3. ඩේටාබේස් එකෙන් තෝරාගත් Category UUID එක සහ අනෙකුත් විස්තර සමග Ad එක Database එකට Insert කිරීම
     const { error } = await supabase
       .from('ads')
       .insert([
         {
           user_id: user.id,
-          category_id: categoryUuid,
+          category_id: categoryId, // මෙහි දැන් ඩේටාබේස් එකේ අදාළ category එකේ UUID එක ගබඩා වේ
           title,
           description,
           price: parseFloat(price),
@@ -294,14 +277,17 @@ function PostAdForm() {
           {/* Category & Condition */}
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                <Tag className="w-4 h-4 text-orange-500" /> Category
+              </label>
               <select
                 required
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white"
+                className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white cursor-pointer"
               >
                 <option value="">Select Category</option>
+                {/* 🌟 Database එකෙන් ලබාගත් categories මෙහි ඩයිනමික් ලෙස ලැයිස්තුගත වේ */}
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -384,7 +370,7 @@ function PostAdForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl transition shadow-md disabled:opacity-50 text-sm"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl transition shadow-md disabled:opacity-50 text-sm cursor-pointer"
           >
             {loading ? 'Uploading & Publishing...' : 'Publish Ad Now'}
           </button>

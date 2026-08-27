@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { User, LogOut, LayoutDashboard, Menu, X, Megaphone, Briefcase } from 'lucide-react'
+import { User, LogOut, LayoutDashboard, Menu, X, Briefcase } from 'lucide-react'
 
 export default function Navbar() {
   const supabase = createClient()
@@ -122,7 +122,7 @@ export default function Navbar() {
           )}
         </Link>
 
-        {/* 2. Main Navigation (Desktop) */}
+        {/* 2. Main Navigation (Desktop) - Request Banner ඉවත් කර ඇත */}
         <nav className="hidden md:flex items-center space-x-6">
           <Link href="/" className="text-sm font-bold text-gray-700 hover:text-orange-500 transition">
             Home
@@ -131,47 +131,64 @@ export default function Navbar() {
             <span className="bg-orange-100 text-orange-700 text-[10px] font-black px-1.5 py-0.5 rounded mr-1.5 uppercase">New</span>
             Manpower & Jobs
           </Link>
-          <Link href="/request-banner" className="text-sm font-bold text-gray-700 hover:text-orange-500 transition flex items-center gap-1.5">
-            <Megaphone className="w-4 h-4 text-orange-500" />
-            Request Banner
-          </Link>
         </nav>
 
-        {/* 3. User State & Action Buttons (Desktop) */}
+        {/* 3. User State & Action Buttons (Desktop) - /post-job වෙනුවට /post-ad දමා ඇත */}
         <div className="hidden md:flex items-center space-x-3">
+          
+          <Link 
+            href="/post-ad" 
+            className="text-xs font-bold text-white px-4 py-2 rounded-xl shadow transition" 
+            style={{ backgroundColor: siteSettings.primary_color }}
+          >
+            + Post Ad
+          </Link>
+
           {!loading && (
             user ? (
-              <div className="flex items-center space-x-2 bg-gray-100 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-700">
-                <Link href="/profile" className="hover:text-orange-500 font-medium flex items-center gap-2" title="View Profile">
+              <div className="relative group">
+                <div className="flex items-center cursor-pointer p-1">
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="Profile" className="w-7 h-7 rounded-full object-cover border" />
+                    <img 
+                      src={avatarUrl} 
+                      alt="Profile" 
+                      className="w-10 h-10 rounded-full object-cover border-2 shadow-sm" 
+                      style={{ borderColor: siteSettings.primary_color }}
+                    />
                   ) : (
-                    <div className="w-7 h-7 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-xs">
+                    <div 
+                      className="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-xs shadow-sm"
+                      style={{ backgroundColor: siteSettings.primary_color }}
+                    >
                       {user.email?.[0]?.toUpperCase() || 'U'}
                     </div>
                   )}
-                  <span className="truncate max-w-[100px]">{user.email}</span>
-                </Link>
+                </div>
 
-                <span className="text-gray-300">|</span>
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 hidden group-hover:block hover:block z-50">
+                  <div className="px-4 py-2 border-b border-gray-100 mb-1">
+                    <p className="text-[11px] text-gray-500 truncate">{user.email}</p>
+                  </div>
 
-                <Link href="/dashboard/my-ads" className="flex items-center gap-1 font-bold text-gray-700 hover:text-orange-600 transition" title="My Ads">
-                  <Briefcase className="w-3.5 h-3.5 text-orange-500" />
-                  <span>My Jobs</span>
-                </Link>
+                  <Link href="/dashboard/my-ads" className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 font-medium">
+                    <Briefcase className="w-3.5 h-3.5 text-orange-500" />
+                    <span>My Jobs</span>
+                  </Link>
 
-                <span className="text-gray-300">|</span>
+                  <Link href={dashboardHref} className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 font-medium">
+                    <LayoutDashboard className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Dashboard</span>
+                  </Link>
 
-                <Link href={dashboardHref} className="flex items-center gap-1 font-bold transition" style={{ color: siteSettings.primary_color }} title="Dashboard">
-                  <LayoutDashboard className="w-3.5 h-3.5" />
-                  <span>Dashboard</span>
-                </Link>
-
-                <span className="text-gray-300">|</span>
-
-                <button onClick={handleLogout} className="text-red-500 hover:underline font-bold">
-                  Logout
-                </button>
+                  <button 
+                    onClick={handleLogout} 
+                    className="w-full text-left flex items-center gap-2 px-4 py-2 text-xs text-red-600 hover:bg-red-50 font-medium border-t border-gray-100 mt-1"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Logout</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <Link href="/login" className="text-xs font-bold text-gray-700 hover:text-orange-500 px-3 py-2">
@@ -179,20 +196,12 @@ export default function Navbar() {
               </Link>
             )
           )}
-
-          <Link href="/post-job" className="text-xs font-bold px-3 py-2 rounded-xl border transition" style={{ color: siteSettings.primary_color, backgroundColor: `${siteSettings.primary_color}10`, borderColor: `${siteSettings.primary_color}30` }}>
-            + Post Service
-          </Link>
-
-          <Link href="/jobs" className="text-xs font-bold text-white px-4 py-2 rounded-xl shadow transition" style={{ backgroundColor: siteSettings.primary_color }}>
-            + Post Job
-          </Link>
         </div>
 
         {/* 4. Mobile Menu Toggle & Quick Buttons */}
         <div className="flex md:hidden items-center space-x-2">
           <Link 
-            href="/post-job" 
+            href="/post-ad" 
             className="text-[11px] font-bold text-white px-2.5 py-1.5 rounded-lg shadow"
             style={{ backgroundColor: siteSettings.primary_color }}
           >
@@ -226,18 +235,11 @@ export default function Navbar() {
             Manpower & Jobs
           </Link>
           <Link 
-            href="/request-banner" 
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2 py-2 text-sm font-bold text-gray-700 border-b"
-          >
-            <Megaphone className="w-4 h-4 text-orange-500" /> Request Banner Ad
-          </Link>
-          <Link 
-            href="/services/create" 
+            href="/post-ad" 
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-bold text-orange-600 border-b"
           >
-            + Post a Service
+            + Post Ad
           </Link>
 
           {!loading && (
@@ -263,7 +265,7 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-2 py-2 text-sm font-bold text-gray-800 border-b"
                 >
-                  <Briefcase className="w-4 h-4 text-orange-500" /> My Posted Ads
+                  <Briefcase className="w-4 h-4 text-orange-500" /> My Jobs
                 </Link>
 
                 <Link 

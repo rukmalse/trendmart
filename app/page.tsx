@@ -52,7 +52,7 @@ export default function HomePage() {
   const [homeBgUrl, setHomeBgUrl] = useState<string>('') 
   
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string>('') // Updated to empty string for "All Categories"
   const [selectedDistrict, setSelectedDistrict] = useState<string>('') 
   
   const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high'>('newest')
@@ -62,7 +62,6 @@ export default function HomePage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>({ lat: 6.9271, lng: 79.8612 })
   const [loading, setLoading] = useState(true)
 
-  // Ref for Categories Slider scrolling
   const categoriesScrollRef = useRef<HTMLDivElement>(null)
 
   const scrollCategories = (direction: 'left' | 'right') => {
@@ -183,7 +182,7 @@ export default function HomePage() {
   }
 
   const filteredAds = allAds.filter((ad) => {
-    if (selectedCategory && ad.category_id !== selectedCategory) {
+    if (selectedCategory && selectedCategory !== '' && ad.category_id !== selectedCategory) {
       return false
     }
 
@@ -271,8 +270,9 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Search Box */}
+          {/* Search Box with Dynamic Category Dropdown */}
           <div className="bg-white rounded-2xl p-2.5 shadow-2xl flex flex-col sm:flex-row gap-2 text-gray-800">
+            {/* Search Input */}
             <div className="flex-1 flex items-center px-3.5 bg-gray-50 rounded-xl border border-gray-200">
               <Search className="w-5 h-5 text-gray-400 mr-2 shrink-0" />
               <input
@@ -284,7 +284,23 @@ export default function HomePage() {
               />
             </div>
 
-            <div className="sm:w-56 flex items-center px-3 bg-gray-50 rounded-xl border border-gray-200">
+            {/* Dynamic Category Selector Dropdown (Includes Used items, Gems & Jewelries, etc.) */}
+            <div className="sm:w-48 flex items-center px-3 bg-gray-50 rounded-xl border border-gray-200">
+              <Tag className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full bg-transparent py-3 focus:outline-none text-xs sm:text-sm font-medium cursor-pointer truncate"
+              >
+                <option value="">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* District Selector */}
+            <div className="sm:w-48 flex items-center px-3 bg-gray-50 rounded-xl border border-gray-200">
               <MapPin className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
               <select
                 value={selectedDistrict}
@@ -322,7 +338,7 @@ export default function HomePage() {
             
             <div className="flex items-center gap-2">
               {selectedCategory && (
-                <button onClick={() => setSelectedCategory(null)} className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200">
+                <button onClick={() => setSelectedCategory('')} className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200">
                   Clear Category
                 </button>
               )}
@@ -355,7 +371,7 @@ export default function HomePage() {
               return (
                 <div
                   key={cat.id}
-                  onClick={() => setSelectedCategory(isSelected ? null : cat.id)}
+                  onClick={() => setSelectedCategory(isSelected ? '' : cat.id)}
                   className={`min-w-[200px] sm:min-w-[220px] p-4 rounded-2xl border transition-all flex items-center gap-3.5 cursor-pointer snap-start shrink-0 shadow-sm hover:shadow-md ${
                     isSelected ? 'bg-orange-50 border-orange-500 ring-2 ring-orange-400' : 'bg-white border-gray-200 hover:border-orange-300'
                   }`}
@@ -373,7 +389,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Services Tab View - Optimized with Category & Description */}
+      {/* Services Tab View */}
       {activeTab === 'services' && (
         <section className="max-w-7xl mx-auto px-4 py-8 space-y-6">
           <div className="bg-white p-3 rounded-2xl border shadow-sm">
@@ -388,7 +404,6 @@ export default function HomePage() {
               services.map((service) => (
                 <div key={service.id} className="bg-white p-5 rounded-2xl border shadow-sm flex flex-col justify-between">
                   <div>
-                    {/* Service Category Badge */}
                     {service.service_category_id && (
                       <span className="inline-block text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full mb-2.5 border border-orange-100">
                         {service.service_category_id}
@@ -396,7 +411,6 @@ export default function HomePage() {
                     )}
                     <h3 className="font-bold text-lg text-gray-900 mb-1">{service.business_name}</h3>
                     
-                    {/* Description */}
                     {service.description && (
                       <p className="text-xs text-gray-600 mb-3 line-clamp-2">{service.description}</p>
                     )}
