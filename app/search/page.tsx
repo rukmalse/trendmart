@@ -14,11 +14,17 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
-  // Fetch Categories on Load
+  // Fetch Categories on Load (Duplicate issues fixed here)
   useEffect(() => {
     async function fetchCategories() {
       const { data } = await supabase.from('categories').select('*')
-      if (data) setCategories(data)
+      if (data) {
+        // එකම නම ඇති කැටගරි ඩබල් වීම වැළැක්වීමට Unique කරගැනීම
+        const uniqueCategories = Array.from(
+          new Map(data.map(item => [item.name?.trim().toLowerCase(), item])).values()
+        )
+        setCategories(uniqueCategories)
+      }
     }
     fetchCategories()
   }, [])
