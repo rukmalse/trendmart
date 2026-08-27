@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { User, LogOut, LayoutDashboard, Menu, X, Briefcase } from 'lucide-react'
+import { User, LogOut, LayoutDashboard, Menu, X, Briefcase, Home, PlusCircle } from 'lucide-react'
 
 export default function Navbar() {
   const supabase = createClient()
@@ -122,7 +122,7 @@ export default function Navbar() {
           )}
         </Link>
 
-        {/* 2. Main Navigation (Desktop) - Request Banner ඉවත් කර ඇත */}
+        {/* 2. Main Navigation (Desktop) */}
         <nav className="hidden md:flex items-center space-x-6">
           <Link href="/" className="text-sm font-bold text-gray-700 hover:text-orange-500 transition">
             Home
@@ -133,9 +133,8 @@ export default function Navbar() {
           </Link>
         </nav>
 
-        {/* 3. User State & Action Buttons (Desktop) - /post-job වෙනුවට /post-ad දමා ඇත */}
+        {/* 3. User State & Action Buttons (Desktop) */}
         <div className="hidden md:flex items-center space-x-3">
-          
           <Link 
             href="/post-ad" 
             className="text-xs font-bold text-white px-4 py-2 rounded-xl shadow transition" 
@@ -198,103 +197,144 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* 4. Mobile Menu Toggle & Quick Buttons */}
+        {/* 4. Mobile Menu Toggle Button */}
         <div className="flex md:hidden items-center space-x-2">
-          <Link 
-            href="/post-ad" 
-            className="text-[11px] font-bold text-white px-2.5 py-1.5 rounded-lg shadow"
-            style={{ backgroundColor: siteSettings.primary_color }}
-          >
-            + Post
-          </Link>
           <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => setMobileMenuOpen(true)}
             className="p-2 rounded-xl text-gray-700 hover:bg-gray-100 focus:outline-none"
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            <Menu className="w-6 h-6" />
           </button>
         </div>
 
       </div>
 
-      {/* 5. Mobile Dropdown Menu */}
+      {/* 5. Mobile Side Menu (Drawer Style) */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-b px-4 pt-2 pb-6 space-y-3 shadow-lg">
-          <Link 
-            href="/" 
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-bold text-gray-700 border-b"
-          >
-            Home
-          </Link>
-          <Link 
-            href="/jobs" 
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-bold text-gray-700 border-b"
-          >
-            Manpower & Jobs
-          </Link>
-          <Link 
-            href="/post-ad" 
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-bold text-orange-600 border-b"
-          >
-            + Post Ad
-          </Link>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end transition-opacity md:hidden">
+          <div className="w-[85%] max-w-sm bg-white h-full shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300">
+            
+            {/* Top Header inside Drawer: Logo & Close Button */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <span className="font-black text-lg text-gray-900 tracking-tight">TRENDMART</span>
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 text-gray-500 hover:text-gray-800 rounded-full hover:bg-gray-100 transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
-          {!loading && (
-            user ? (
-              <div className="space-y-2 pt-2">
-                <Link 
-                  href="/profile" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center space-x-3 p-2 bg-gray-50 rounded-xl"
-                >
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover border" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-xs">
-                      {user.email?.[0]?.toUpperCase() || 'U'}
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+              
+              {/* User Profile Box & Small Logout below it */}
+              {!loading && (
+                user ? (
+                  <div className="space-y-1.5">
+                    <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 flex items-center gap-3">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover border" />
+                      ) : (
+                        <div 
+                          className="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-xs shadow-sm"
+                          style={{ backgroundColor: siteSettings.primary_color }}
+                        >
+                          {user.email?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                      )}
+                      <div className="overflow-hidden">
+                        <p className="text-[11px] text-gray-400 font-medium">Logged in as</p>
+                        <p className="text-xs font-bold text-gray-800 truncate">{user.email}</p>
+                      </div>
                     </div>
-                  )}
-                  <span className="text-xs font-semibold truncate">{user.email}</span>
+                    
+                    {/* Small Logout Link right under the card */}
+                    <div className="flex justify-end pr-1">
+                      <button 
+                        onClick={handleLogout}
+                        className="text-[11px] font-semibold text-red-500 hover:text-red-700 flex items-center gap-1 transition"
+                      >
+                        <LogOut className="w-3 h-3" /> Logout
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Link 
+                      href="/login" 
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex-1 text-center py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                    >
+                      Login
+                    </Link>
+                    <Link 
+                      href="/register" 
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-white shadow-sm"
+                      style={{ backgroundColor: siteSettings.primary_color }}
+                    >
+                      Sign Up
+                    </Link>
+                  </div>
+                )
+              )}
+
+              {/* Navigation Menu Items */}
+              <div className="space-y-1 pt-2">
+                <p className="text-[11px] font-bold text-gray-400 uppercase px-3 mb-2 tracking-wider">Navigation</p>
+                
+                <Link 
+                  href="/" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition"
+                >
+                  <Home className="w-5 h-5 text-gray-400" /> Home
                 </Link>
 
                 <Link 
-                  href="/dashboard/my-ads"
+                  href="/jobs" 
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 py-2 text-sm font-bold text-gray-800 border-b"
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition"
                 >
-                  <Briefcase className="w-4 h-4 text-orange-500" /> My Jobs
+                  <Briefcase className="w-5 h-5 text-gray-400" /> Manpower & Jobs
                 </Link>
 
-                <Link 
-                  href={dashboardHref}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 py-2 text-sm font-bold text-gray-800 border-b"
-                >
-                  <LayoutDashboard className="w-4 h-4 text-orange-500" /> Dashboard
-                </Link>
+                {user && (
+                  <>
+                    <Link 
+                      href="/dashboard/my-ads" 
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition"
+                    >
+                      <Briefcase className="w-5 h-5 text-orange-500" /> My Jobs
+                    </Link>
 
-                <button 
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 py-2 text-sm font-bold text-red-500 w-full text-left"
-                >
-                  <LogOut className="w-4 h-4" /> Logout
-                </button>
+                    <Link 
+                      href={dashboardHref} 
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition"
+                    >
+                      <LayoutDashboard className="w-5 h-5 text-orange-500" /> Dashboard
+                    </Link>
+                  </>
+                )}
               </div>
-            ) : (
-              <div className="pt-2">
-                <Link 
-                  href="/login" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block text-center w-full py-2.5 bg-gray-100 rounded-xl font-bold text-sm text-gray-800"
-                >
-                  Login / Register
-                </Link>
-              </div>
-            )
-          )}
+            </div>
+
+            {/* Footer Actions: Post Ad Button */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+              <Link 
+                href="/post-ad" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-2 text-white font-bold py-3 rounded-xl text-sm shadow-md transition"
+                style={{ backgroundColor: siteSettings.primary_color }}
+              >
+                <PlusCircle className="w-5 h-5" /> Post Ad
+              </Link>
+            </div>
+
+          </div>
         </div>
       )}
     </header>
