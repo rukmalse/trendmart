@@ -308,8 +308,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 text-gray-800">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <main className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 text-gray-800 overflow-x-hidden">
+      <div className="max-w-6xl mx-auto space-y-8 w-full">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -321,13 +321,13 @@ export default function DashboardPage() {
               Customer <span className="text-blue-600">Dashboard</span>
             </h1>
             {user && (
-              <p className="text-xs text-gray-500 font-medium mt-1">
+              <p className="text-xs text-gray-500 font-medium mt-1 break-all">
                 Logged in as: <span className="font-bold text-gray-700">{user.email}</span>
               </p>
             )}
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 flex-wrap gap-y-2">
             <button onClick={loadUserDataAndAds} className="p-2.5 bg-white border hover:bg-gray-50 text-gray-600 rounded-xl shadow-sm transition" title="Refresh Data">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -396,9 +396,9 @@ export default function DashboardPage() {
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Email (Fixed)</label>
-                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-xl text-gray-500 text-sm">
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-xl text-gray-500 text-sm overflow-hidden">
                   <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span className="truncate text-xs">{user?.email}</span>
+                  <span className="truncate text-xs break-all">{user?.email}</span>
                 </div>
               </div>
               <div>
@@ -426,7 +426,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column: Stores, Ads & Saved Ads */}
-          <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-sm md:col-span-2 space-y-10">
+          <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-sm md:col-span-2 space-y-10 min-w-0">
             
             {/* Your Stores Section */}
             <div className="space-y-6">
@@ -452,19 +452,19 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-4">
                   {stores.map((store) => (
-                    <div key={store.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border p-4 rounded-2xl gap-4 hover:border-gray-300 transition bg-blue-50/20">
-                      <div className="flex items-center space-x-4">
+                    <div key={store.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border p-4 rounded-2xl gap-4 hover:border-gray-300 transition bg-blue-50/20 overflow-hidden">
+                      <div className="flex items-center space-x-4 min-w-0 w-full sm:w-auto">
                         <div className="relative w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border flex items-center justify-center">
                           {store.logo_url ? <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" /> : <Store className="w-6 h-6 text-gray-400" />}
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 uppercase">Store</span>
-                          <h3 className="font-bold text-gray-900 text-sm mt-1">{store.name}</h3>
-                          <p className="text-xs text-gray-500 truncate max-w-xs">{store.description || 'No description provided.'}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">📍 {store.city || 'Location not set'}</p>
+                          <h3 className="font-bold text-gray-900 text-sm mt-1 truncate">{store.name}</h3>
+                          <p className="text-xs text-gray-500 break-all line-clamp-2 mt-0.5">{store.description || 'No description provided.'}</p>
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">📍 {store.city || 'Location not set'}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 flex-shrink-0">
                         <Link href={`/stores/${store.slug || store.id}`} className="px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 border rounded-xl text-xs font-bold flex items-center transition gap-1" target="_blank">
                           <Eye className="w-3.5 h-3.5" /> Visit
                         </Link>
@@ -498,16 +498,16 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-4">
                   {ads.map((ad) => (
-                    <div key={ad.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border p-4 rounded-2xl gap-4 hover:border-gray-300 transition">
-                      <div className="flex items-center space-x-4">
+                    <div key={ad.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border p-4 rounded-2xl gap-4 hover:border-gray-300 transition overflow-hidden">
+                      <div className="flex items-center space-x-4 min-w-0 w-full sm:w-auto">
                         <div className="relative w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border flex items-center justify-center">
                           {ad.images && ad.images.length > 0 ? <img src={ad.images[0]} alt={ad.title} className="w-full h-full object-cover" /> : <span className="text-[10px] text-gray-400">No Image</span>}
                           <span className="absolute bottom-1 right-1 text-[9px] font-bold text-white bg-blue-600/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm uppercase">
                             {categoriesMap[ad.category_id] || 'General'}
                           </span>
                         </div>
-                        <div>
-                          <div className="flex items-center space-x-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
                               ad.status === 'active' ? 'bg-green-100 text-green-700' : ad.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'
                             }`}>
@@ -519,14 +519,18 @@ export default function DashboardPage() {
                               </span>
                             )}
                           </div>
-                          <h3 className="font-bold text-gray-900 text-sm mt-1">{ad.title}</h3>
-                          <p className="text-orange-600 font-black text-sm">LKR {Number(ad.price).toLocaleString()}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">📍 {ad.city}</p>
+                          <h3 className="font-bold text-gray-900 text-sm mt-1 truncate">{ad.title}</h3>
+                          {/* මෙහි දිගු විස්තර overflow වීම වැළැක්වීමට break-all සහ line-clamp එකතු කර ඇත */}
+                          {ad.description && (
+                            <p className="text-xs text-gray-500 break-all line-clamp-2 mt-0.5">{ad.description}</p>
+                          )}
+                          <p className="text-orange-600 font-black text-sm mt-0.5">LKR {Number(ad.price).toLocaleString()}</p>
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">📍 {ad.city}</p>
                         </div>
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 flex-shrink-0">
                         <button
                           onClick={() => handleBumpAd(ad.id)}
                           disabled={ad.bump_status === 'pending'}
@@ -581,17 +585,20 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-4">
                   {savedAds.map((ad) => (
-                    <div key={ad.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border p-4 rounded-2xl gap-4 hover:border-gray-300 transition bg-gray-50/50">
-                      <div className="flex items-center space-x-4">
+                    <div key={ad.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border p-4 rounded-2xl gap-4 hover:border-gray-300 transition bg-gray-50/50 overflow-hidden">
+                      <div className="flex items-center space-x-4 min-w-0 w-full sm:w-auto">
                         <div className="relative w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border flex items-center justify-center">
                           {ad.images && ad.images.length > 0 ? <img src={ad.images[0]} alt={ad.title} className="w-full h-full object-cover" /> : <span className="text-[10px] text-gray-400">No Image</span>}
                         </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900 text-sm mt-1">{ad.title}</h3>
-                          <p className="text-orange-600 font-black text-sm">LKR {Number(ad.price).toLocaleString()}</p>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-gray-900 text-sm mt-1 truncate">{ad.title}</h3>
+                          {ad.description && (
+                            <p className="text-xs text-gray-500 break-all line-clamp-2 mt-0.5">{ad.description}</p>
+                          )}
+                          <p className="text-orange-600 font-black text-sm mt-0.5">LKR {Number(ad.price).toLocaleString()}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 flex-shrink-0">
                         <Link href={`/ads/${ad.id}`} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center transition gap-1">
                           <Eye className="w-4 h-4" /> View Ad
                         </Link>
@@ -654,11 +661,13 @@ export default function DashboardPage() {
                   id="slip-file-input"
                 />
                 <label htmlFor="slip-file-input" className="cursor-pointer space-y-2 block">
-                  <Upload className="w-8 h-8 text-blue-500 mx-auto" />
+                  <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center mx-auto">
+                    <Upload className="w-5 h-5" />
+                  </div>
                   <p className="text-xs font-bold text-gray-700">
-                    {slipFile ? slipFile.name : 'Click to select payment slip image'}
+                    {slipFile ? slipFile.name : 'Click here to upload Bank Slip image'}
                   </p>
-                  <p className="text-[10px] text-gray-400">PNG, JPG up to 5MB</p>
+                  <p className="text-[10px] text-gray-400">PNG, JPG or JPEG (Max 5MB)</p>
                 </label>
               </div>
 
@@ -666,20 +675,21 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowSlipModal(false)}
-                  className="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl text-xs transition"
+                  className="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={uploadingSlip}
-                  className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2"
+                  disabled={uploadingSlip || !slipFile}
+                  className="w-1/2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition text-xs flex items-center justify-center gap-2 disabled:opacity-50 shadow-md"
                 >
                   {uploadingSlip ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                   Submit Slip
                 </button>
               </div>
             </form>
+
           </div>
         </div>
       )}

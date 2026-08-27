@@ -1,3 +1,4 @@
+import BottomNav from "@/components/BottomNav";
 import 'leaflet/dist/leaflet.css'
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -18,6 +19,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Trend Mart - Classifieds & Manpower Job Bank",
   description: "Buy, Sell, and Find Skilled Workers in Sri Lanka",
+  manifest: "/manifest.json", // 👈 PWA Manifest එක මෙහි එකතු කර ඇත[cite: 1]
+  themeColor: "#2563eb",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Trend Mart",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -27,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body suppressHydrationWarning className="min-h-full flex flex-col bg-gray-50 text-gray-900">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-gray-50 text-gray-900 pb-16 md:pb-0">
         
         {/* 🚀 Dynamic Client Navbar */}
         <Navbar />
@@ -39,6 +47,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* 🚀 Professional Footer */}
         <Footer />
+
+        {/* 🚀 Mobile App Bottom Navigation Bar */}
+        <BottomNav />
 
       </body>
     </html>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Phone, MapPin, ShieldCheck, FileText, HelpCircle } from 'lucide-react'
+import { Mail, Phone, MapPin, ShieldCheck, FileText, HelpCircle, Trash2 } from 'lucide-react'
 
 export default function Footer() {
   const supabase = createClient()
@@ -70,7 +70,7 @@ export default function Footer() {
 
           {/* Column 3: Legal & Support */}
           <div className="space-y-3">
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider">Legal & Policy</h4>
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider">Legal & Support</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/terms" className="flex items-center gap-1.5 hover:text-white transition">
@@ -82,6 +82,12 @@ export default function Footer() {
                 <Link href="/privacy" className="flex items-center gap-1.5 hover:text-white transition">
                   <ShieldCheck className="w-4 h-4 text-gray-400" />
                   Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/delete-account" className="flex items-center gap-1.5 hover:text-white transition">
+                  <Trash2 className="w-4 h-4 text-gray-400" />
+                  Delete Account
                 </Link>
               </li>
               <li>

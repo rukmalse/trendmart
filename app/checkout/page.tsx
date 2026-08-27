@@ -101,7 +101,7 @@ export default function UserPaymentPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 text-sm">Online Payment Gateway</h3>
-                    <p className="text-xs text-gray-500">ডেබිට් / ක්‍රෙඩිට් කාඩ්පතක් මඟින් ක්ෂණිකව ගෙවන්න.</p>
+                    <p className="text-xs text-gray-500">Debit / Credit කාඩ්පතක් මඟින් ක්ෂණිකව ගෙවන්න.</p>
                   </div>
                 </div>
                 <input 

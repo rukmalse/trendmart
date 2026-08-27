@@ -35,3 +35,22 @@ input::placeholder, select::placeholder, textarea::placeholder {
   font-weight: 400 !important;
   opacity: 1;
 }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 🚀 Mobile Overflow Fix */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Scrollbar hide for category filter pills */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
