@@ -56,7 +56,7 @@ interface BannerRequest {
   created_at: string
 }
 
-export default function SuperAdminMainDashboard() {
+export default function AdminMainDashboard() {
   const [pendingAds, setPendingAds] = useState<Ad[]>([])
   const [bumpAds, setBumpAds] = useState<BumpRequest[]>([])
   const [pendingPayments, setPendingPayments] = useState<PaymentRequest[]>([])
@@ -65,38 +65,36 @@ export default function SuperAdminMainDashboard() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [selectedSlip, setSelectedSlip] = useState<string | null>(null)
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false) // Super Admin authorization state එක
+  const [isAdminAuthorized, setIsAdminAuthorized] = useState(false)
   
   const supabase = createClient()
   const router = useRouter()
 
-  // 0. Check Super Admin Authorization & Fetch Data
+  // 0. Check Admin Authorization & Fetch Data
   useEffect(() => {
-    const verifySuperAdminAndFetch = async () => {
+    const verifyAdminAndFetch = async () => {
       setLoading(true)
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser()
 
         if (userError || !user) {
-          router.replace('/login') // Login වී නැත්නම් login page එකට යවන්න
+          router.replace('/login')
           return
         }
 
-        // Database එකෙන් user ගේ role එක පරීක්ෂා කිරීම (profiles table එක පාවිච්චි කර ඇත)
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single()
 
-        // Super Admin කෙනෙක් නොවේ නම් (role එක 'super-admin' නොවේ නම්) කෙලින්ම Home page එකට redirect කරන්න
-        if (profileError || profile?.role !== 'super-admin') {
+        // Admin කෙනෙක් හෝ Super Admin කෙනෙක් නම් පමණක් අවසර දීම (admin හෝ super-admin)
+        if (profileError || (profile?.role !== 'admin' && profile?.role !== 'super-admin')) {
           router.replace('/') 
           return
         }
 
-        // Super Admin කෙනෙක් නම් පමණක් true කර data fetch කරගන්න
-        setIsSuperAdmin(true)
+        setIsAdminAuthorized(true)
         await fetchData()
 
       } catch (err) {
@@ -105,20 +103,18 @@ export default function SuperAdminMainDashboard() {
       }
     }
 
-    verifySuperAdminAndFetch()
+    verifyAdminAndFetch()
   }, [])
 
-  // 1. Fetch Data (Optimized with Supabase Joins for Bumps)
+  // 1. Fetch Data
   const fetchData = async () => {
     try {
-      // Fetch Pending Ads in parallel
       const adsPromise = supabase
         .from('ads')
         .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
 
-      // Fetch Pending Bump Requests using Supabase Foreign Key Relationship (Join)
       const bumpsPromise = supabase
         .from('ad_bumps')
         .select(`
@@ -131,14 +127,12 @@ export default function SuperAdminMainDashboard() {
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
 
-      // Fetch Pending Bank Payments
       const paymentsPromise = supabase
         .from('payments')
         .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
 
-      // Fetch Pending Banner Requests
       const bannersPromise = supabase
         .from('banner_requests')
         .select('*')
@@ -281,13 +275,12 @@ export default function SuperAdminMainDashboard() {
     setActionLoading(null)
   }
 
-  // Super Admin කෙනෙක් නොවේ නම් හෝ role එක check වෙනකම් loading screen එක පමණක් පෙන්වීම
-  if (!isSuperAdmin) {
+  if (!isAdminAuthorized) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-center space-y-3">
           <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-gray-600 text-sm font-medium">Verifying super-admin permissions...</p>
+          <p className="text-gray-600 text-sm font-medium">Verifying admin permissions...</p>
         </div>
       </div>
     )
@@ -298,7 +291,7 @@ export default function SuperAdminMainDashboard() {
       {/* Header */}
       <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Super Admin Quick Overview</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Admin Quick Overview</h1>
           <p className="text-gray-500 text-sm mt-1">Review pending advertisements, bump requests, banner requests and bank payment slips.</p>
         </div>
         <button

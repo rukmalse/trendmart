@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -10,7 +10,6 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
-  // Super-admin හෝ admin පාරවල් වලට යනවා නම් පමණක් පරීක්ෂා කරන්න
   if (path.startsWith('/admin') || path.startsWith('/super-admin')) {
     try {
       const supabase = createServerClient(
@@ -22,46 +21,42 @@ export async function proxy(request: NextRequest) {
               return request.cookies.getAll()
             },
             setAll(cookiesToSet) {
-              cookiesToSet.forEach(({ name, value, options }) =>
+              cookiesToSet.forEach(({ name, value, options }) => {
+                request.cookies.set(name, value)
                 response.cookies.set(name, value, options)
-              )
+              })
             },
           },
         }
       )
 
-      // 1. User කෙනෙක් log වී ඇත්දැයි බැලීම
       const { data: { user }, error: userError } = await supabase.auth.getUser()
 
       if (userError || !user) {
         return NextResponse.redirect(new URL('/login', request.url))
       }
 
-      // 2. Database එකෙන් නියමිත role එක ලබාගැනීම
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single()
 
-      // Profile එක නැතත් හෝ error එකක් ආවත් සැකයට home page එකට යවන්න
       if (profileError || !profile) {
         return NextResponse.redirect(new URL('/', request.url))
       }
 
       const role = profile.role
 
-      // 3. /super-admin සඳහා දැඩි පාලනයක්
-      if (path.startsWith('/super-admin')) {
-        if (role !== 'super-admin') {
-          // සාමාන්‍ය user කෙනෙක් නම් හෝ වෙනත් කෙනෙක් නම් කෙලින්ම Home page එකට හරවන්න
+      // මෙහිදී admin හෝ super_admin හෝ admin ලෙස කුමන එක තිබුණත් ඇතුළු වීමට ඉඩ සලසයි
+      if (path.startsWith('/super_admin')) {
+        if (role !== 'admin' && role !== 'super_admin' && role !== 'super-admin') {
           return NextResponse.redirect(new URL('/', request.url))
         }
       }
 
-      // 4. /admin සඳහා පාලනය
       if (path.startsWith('/admin')) {
-        if (role !== 'admin' && role !== 'super-admin') {
+        if (role !== 'admin' && role !== 'super_admin' && role !== 'super-admin') {
           return NextResponse.redirect(new URL('/', request.url))
         }
       }

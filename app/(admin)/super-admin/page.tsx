@@ -138,7 +138,7 @@ export default function SuperAdminDashboard() {
 
     if (error) {
       alert(`Failed to update gateway status: ${error.message}`)
-      setGatewayEnabled(!checked) // Revert back on error
+      setGatewayEnabled(!checked)
     }
     setSavingGateway(false)
   }
@@ -246,11 +246,10 @@ export default function SuperAdminDashboard() {
       avatarUrl = publicUrlData.publicUrl
     }
 
-    // Upload Home Background Image if changed
     if (bgFile) {
       const fileExt = bgFile.name.split('.').pop()
       const fileName = `home_bg_${Date.now()}.${fileExt}`
-      const filePath = `settings/${fileName}`
+      const filePath = `settings/${fileName}` // නිවැරදි කරන ලදී
 
       const { error: uploadError } = await supabase.storage
         .from('ad-images')
@@ -292,7 +291,6 @@ export default function SuperAdminDashboard() {
     }
   }
 
-  // Filtered Users for Search
   const filteredUsers = usersList.filter(
     (user) =>
       (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -337,13 +335,10 @@ export default function SuperAdminDashboard() {
           </div>
 
           <div className="border rounded-2xl divide-y divide-gray-100 overflow-hidden">
-            {/* 1. Online Payment Gateway Toggle */}
             <div className="p-6 flex items-center justify-between hover:bg-gray-50 transition">
               <div>
                 <h3 className="text-base font-bold text-gray-800">Online Payment Gateway</h3>
-                <p className="text-gray-500 text-xs mt-0.5">
-                  Enable or disable online card/digital payments for users.
-                </p>
+                <p className="text-gray-500 text-xs mt-0.5">Enable or disable online card/digital payments for users.</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
@@ -357,13 +352,10 @@ export default function SuperAdminDashboard() {
               </label>
             </div>
 
-            {/* 2. Bank Deposit Option Toggle */}
             <div className="p-6 flex items-center justify-between hover:bg-gray-50 transition">
               <div>
                 <h3 className="text-base font-bold text-gray-800">Bank Deposit Option</h3>
-                <p className="text-gray-500 text-xs mt-0.5">
-                  Enable or disable manual bank slip uploads for users.
-                </p>
+                <p className="text-gray-500 text-xs mt-0.5">Enable or disable manual bank slip uploads for users.</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
@@ -396,7 +388,6 @@ export default function SuperAdminDashboard() {
             </button>
           </div>
 
-          {/* Search Bar */}
           <div className="relative w-full md:w-80">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -408,7 +399,6 @@ export default function SuperAdminDashboard() {
             />
           </div>
 
-          {/* Users Table */}
           <div className="overflow-x-auto border rounded-2xl">
             <table className="w-full text-left border-collapse text-sm text-gray-700">
               <thead>
@@ -487,7 +477,6 @@ export default function SuperAdminDashboard() {
 
           <form onSubmit={handleSave} className="space-y-6">
             
-            {/* Super Admin Profile Picture Upload */}
             <div className="bg-gray-50 p-6 rounded-2xl border space-y-3">
               <label className="block text-sm font-bold text-gray-800">Super Admin Profile Picture</label>
               <div className="flex items-center space-x-4">
@@ -506,7 +495,6 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
-            {/* Home Page Background Image Upload */}
             <div className="bg-blue-50 p-6 rounded-2xl border-2 border-blue-200 space-y-3">
               <label className="block text-sm font-bold text-blue-900 flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-blue-600" /> Home Page Background Image (නිල් පාට වෙනුවට පින්තූරයක්)
@@ -532,7 +520,6 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
-            {/* Contact Number Field */}
             <div className="bg-orange-50 p-5 rounded-2xl border-2 border-orange-400 space-y-2 shadow-sm">
               <label className="text-sm font-bold text-orange-900 flex items-center">
                 <Phone className="w-5 h-5 mr-2 text-orange-600" /> 
@@ -548,7 +535,6 @@ export default function SuperAdminDashboard() {
               />
             </div>
 
-            {/* Site Name */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Site Name</label>
               <input
@@ -560,7 +546,6 @@ export default function SuperAdminDashboard() {
               />
             </div>
 
-            {/* Logo Upload */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Website Logo</label>
               <div className="flex items-center space-x-4">
@@ -582,7 +567,6 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
-            {/* Primary Color */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                 <Palette className="w-4 h-4 mr-1.5 text-orange-500" /> Theme Primary Color
@@ -598,12 +582,11 @@ export default function SuperAdminDashboard() {
                   type="text"
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="w-32 px-4 py.5 rounded-xl border text-sm uppercase font-mono text-gray-900 bg-white"
+                  className="w-32 px-4 py-2.5 rounded-xl border text-sm uppercase font-mono text-gray-900 bg-white"
                 />
               </div>
             </div>
 
-            {/* Save Button */}
             <button
               type="submit"
               disabled={loading}
