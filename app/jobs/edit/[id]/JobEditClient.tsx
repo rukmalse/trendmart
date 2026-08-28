@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Tag } from 'lucide-react'
 
 // Supabase Client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -16,10 +16,11 @@ export default function JobEditClient({ id }: { id: string }) {
   const [loading, setLoading] = useState<boolean>(true)
   const [saving, setSaving] = useState<boolean>(false)
   
-  // Job Form Fields (ඔබේ දත්ත වලට අනුව අවශ්‍ය වෙනස්කම් කරගත හැක)
+  // Job Form Fields (მოცემულია Discount Price සමඟ)
   const [title, setTitle] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [salary, setSalary] = useState<string>('')
+  const [discountPrice, setDiscountPrice] = useState<string>('')
   const [location, setLocation] = useState<string>('')
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function JobEditClient({ id }: { id: string }) {
       setTitle(data.title || '')
       setDescription(data.description || '')
       setSalary(data.salary ? String(data.salary) : '')
+      setDiscountPrice(data.discount_price ? String(data.discount_price) : '')
       setLocation(data.location || '')
       setLoading(false)
     }
@@ -56,6 +58,7 @@ export default function JobEditClient({ id }: { id: string }) {
         title,
         description,
         salary: salary ? Number(salary) : null,
+        discount_price: discountPrice ? Number(discountPrice) : null,
         location,
       })
       .eq('id', id)
@@ -103,14 +106,29 @@ export default function JobEditClient({ id }: { id: string }) {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Salary (LKR)</label>
-              <input 
-                type="number" 
-                value={salary} 
-                onChange={(e) => setSalary(e.target.value)} 
-                className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Salary / Regular Price (LKR)</label>
+                <input 
+                  type="number" 
+                  value={salary} 
+                  onChange={(e) => setSalary(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-orange-600 mb-1 flex items-center gap-1">
+                  <Tag className="w-3.5 h-3.5" /> Discount Price (LKR)
+                </label>
+                <input 
+                  type="number" 
+                  value={discountPrice} 
+                  onChange={(e) => setDiscountPrice(e.target.value)} 
+                  placeholder="Optional discounted price"
+                  className="w-full px-4 py-3 rounded-2xl border border-orange-200 bg-orange-50/30 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
             </div>
 
             <div>

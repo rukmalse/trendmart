@@ -196,9 +196,41 @@ export default function AdDetailPage() {
                 
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{ad.title}</h1>
                 
-                <div className="mt-3 inline-block bg-orange-50 text-orange-600 border border-orange-200/60 font-black text-2xl sm:text-4xl px-5 py-2.5 rounded-2xl">
-                  LKR {Number(ad.price || 0).toLocaleString()}
-                </div>
+                {/* Modern Discount Price Section */}
+                {(() => {
+                  const hasDiscount = ad.discount_price && Number(ad.discount_price) > 0 && Number(ad.discount_price) < Number(ad.price);
+                  const discountPercentage = hasDiscount 
+                    ? Math.round(((Number(ad.price) - Number(ad.discount_price)) / Number(ad.price)) * 100) 
+                    : 0;
+                  const savedAmount = hasDiscount ? Number(ad.price) - Number(ad.discount_price) : 0;
+
+                  return (
+                    <div className="mt-3 flex flex-col gap-2 bg-orange-50/90 border border-orange-200/80 p-4 rounded-2xl shadow-sm">
+                      <div className="flex flex-wrap items-baseline gap-3">
+                        <span className="text-orange-600 font-black text-2xl sm:text-4xl">
+                          LKR {Number(ad.discount_price || ad.price).toLocaleString()}
+                        </span>
+                        
+                        {hasDiscount && (
+                          <>
+                            <span className="text-slate-400 font-bold text-base sm:text-xl line-through">
+                              LKR {Number(ad.price).toLocaleString()}
+                            </span>
+                            <span className="bg-orange-600 text-white font-extrabold text-xs px-2.5 py-1 rounded-full shadow-sm">
+                              {discountPercentage}% OFF
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {hasDiscount && (
+                        <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
+                          <Tag className="w-3.5 h-3.5" /> You Save LKR {savedAmount.toLocaleString()} on this item!
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Attributes Grid */}
@@ -263,12 +295,41 @@ export default function AdDetailPage() {
                 {sellerPhone ? (
                   <a 
                     href={`tel:${sellerPhone}`}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-4 px-6 rounded-2xl flex items-center justify-center text-sm sm:text-base shadow-xl shadow-emerald-600/25 transition-all transform hover:-translate-y-0.5 gap-2.5"
+                    className="group relative w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white p-4 sm:p-4.5 rounded-2xl flex items-center justify-between shadow-xl shadow-emerald-600/30 hover:shadow-emerald-600/50 transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 overflow-hidden border border-emerald-400/30"
                   >
-                    <Phone className="w-5 h-5 animate-pulse" /> Call {sellerPhone}
+                    {/* Background Gloss Shine Animation */}
+                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    
+                    <div className="flex items-center gap-3.5 relative z-10">
+                      {/* Pulsing Icon Container */}
+                      <div className="relative flex items-center justify-center">
+                        <div className="absolute w-12 h-12 bg-white/30 rounded-full animate-ping opacity-75"></div>
+                        <div className="relative bg-white text-emerald-700 p-3 rounded-xl shadow-md group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300">
+                          <Phone className="w-5 h-5 fill-emerald-700" />
+                        </div>
+                      </div>
+
+                      {/* Text Labels */}
+                      <div className="flex flex-col text-left">
+                        <span className="text-[10px] sm:text-xs uppercase tracking-wider text-emerald-100 font-bold flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+                          Direct Seller Contact
+                        </span>
+                        <span className="text-base sm:text-xl font-black tracking-wide text-white drop-shadow-sm">
+                          {sellerPhone}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right Arrow Action Indicator */}
+                    <div className="relative z-10 bg-white/10 p-2 rounded-xl group-hover:translate-x-1 transition-transform duration-300 border border-white/20">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </div>
                   </a>
                 ) : (
-                  <div className="bg-orange-50 border border-orange-200 text-orange-800 p-4 rounded-2xl text-center text-xs font-semibold">
+                  <div className="bg-orange-50/80 border border-orange-200/80 text-orange-800 p-4 rounded-2xl text-center text-xs font-semibold shadow-sm">
                     Contact number not provided by seller.
                   </div>
                 )}
@@ -280,7 +341,7 @@ export default function AdDetailPage() {
                   <ShieldCheck className="w-4 h-4 text-sky-600" /> ආරක්ෂිත උපදෙස් (Safety Tips)
                 </div>
                 <p className="text-sky-900 leading-relaxed text-[11px] sm:text-xs">
-                  භාණ්ඩය හෝ දේපළ நேரில் පරීක්ෂා කර බලා මුදල් ගෙවන්න. අත්තිකාරම් මුදල් යැවීමේදී අතිශයින් සැලකිලිමත් වන්න.
+                  භාණ්ඩය හෝ දේපළ පරීක්ෂා කර බලා මුදල් ගෙවන්න. අත්තිකාරම් මුදල් යැවීමේදී අතිශයින් සැලකිලිමත් වන්න.
                 </p>
               </div>
 

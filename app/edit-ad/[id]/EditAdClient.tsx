@@ -16,12 +16,12 @@ export default function EditAdClient({ id }: { id: string }) {
   const [loading, setLoading] = useState<boolean>(true)
   const [saving, setSaving] = useState<boolean>(false)
   
-  // Ad Form Fields
+  // Ad Form Fields (phone ඉවත් කර ඇත)
   const [title, setTitle] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [price, setPrice] = useState<string>('')
+  const [discountPrice, setDiscountPrice] = useState<string>('') 
   const [city, setCity] = useState<string>('')
-  const [phone, setPhone] = useState<string>('')
 
   useEffect(() => {
     async function fetchAdDetails() {
@@ -40,8 +40,8 @@ export default function EditAdClient({ id }: { id: string }) {
       setTitle(data.title || '')
       setDescription(data.description || '')
       setPrice(data.price ? String(data.price) : '')
+      setDiscountPrice(data.discount_price !== null && data.discount_price !== undefined ? String(data.discount_price) : '')
       setCity(data.city || '')
-      setPhone(data.phone || '')
       setLoading(false)
     }
 
@@ -52,23 +52,27 @@ export default function EditAdClient({ id }: { id: string }) {
     e.preventDefault()
     setSaving(true)
 
+    const updatedData = {
+      title,
+      description,
+      price: price ? Number(price) : null,
+      discount_price: discountPrice !== '' ? Number(discountPrice) : null, 
+      city,
+      status: 'pending', // 🌟 ඇඩ් එක එඩිට් කළ පසු නැවත ඇඩ්මින් අනුමැතිය සඳහා pending තත්ත්වයට පත් කරයි
+    }
+
     const { error } = await supabase
       .from('ads')
-      .update({
-        title,
-        description,
-        price: price ? Number(price) : null,
-        city,
-        phone,
-      })
+      .update(updatedData)
       .eq('id', id)
 
     setSaving(false)
 
     if (error) {
-      alert('Error updating ad: ' + error.message)
+      console.error("Supabase Update Error Details:", JSON.stringify(error, null, 2))
+      alert('Error updating ad: ' + (error.message || 'Unknown error'))
     } else {
-      alert('Ad updated successfully!')
+      alert('Ad updated successfully! It has been submitted for admin approval.')
       router.push(`/ads/${id}`)
     }
   }
@@ -106,14 +110,32 @@ export default function EditAdClient({ id }: { id: string }) {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Price (LKR)</label>
-              <input 
-                type="number" 
-                value={price} 
-                onChange={(e) => setPrice(e.target.value)} 
-                className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            {/* Price & Discount Price Inputs */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Regular Price (LKR)</label>
+                <input 
+                  type="number" 
+                  value={price} 
+                  onChange={(e) => setPrice(e.target.value)} 
+                  required
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center justify-between">
+                  <span>Discount Price (LKR)</span>
+                  <span className="text-[10px] text-gray-400 font-normal">Optional</span>
+                </label>
+                <input 
+                  type="number" 
+                  value={discountPrice} 
+                  onChange={(e) => setDiscountPrice(e.target.value)} 
+                  placeholder="වට්ටම් මිලක් ඇත්නම්"
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-orange-50/20"
+                />
+              </div>
             </div>
 
             <div>
@@ -122,16 +144,6 @@ export default function EditAdClient({ id }: { id: string }) {
                 type="text" 
                 value={city} 
                 onChange={(e) => setCity(e.target.value)} 
-                className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number</label>
-              <input 
-                type="text" 
-                value={phone} 
-                onChange={(e) => setPhone(e.target.value)} 
                 className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -149,7 +161,7 @@ export default function EditAdClient({ id }: { id: string }) {
             <button 
               type="submit" 
               disabled={saving}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-2xl transition flex items-center justify-center gap-2 text-sm shadow-sm disabled:opacity-50"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-2xl transition flex items-center justify-center gap-2 text-sm shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? 'Saving Changes...' : 'Save Changes'}

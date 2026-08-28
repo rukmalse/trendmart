@@ -250,12 +250,13 @@ export default function HomePage() {
           </p>
 
           <div className="flex justify-center mb-4">
-            <div className="bg-blue-900/60 p-1 rounded-xl sm:rounded-2xl flex space-x-2 border border-blue-500/30">
+            <div className="bg-blue-900/60 p-1 rounded-xl sm:rounded-2xl flex space-x-2 border border-blue-500/30" suppressHydrationWarning>
               <button
                 onClick={() => setActiveTab('classifieds')}
                 className={`px-4 sm:px-6 py-2 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all ${
                   activeTab === 'classifieds' ? 'bg-orange-500 text-white shadow-md' : 'text-blue-200 hover:text-white'
                 }`}
+                suppressHydrationWarning
               >
                 <Tag className="inline-block w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" /> Classified Ads
               </button>
@@ -264,6 +265,7 @@ export default function HomePage() {
                 className={`px-4 sm:px-6 py-2 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all ${
                   activeTab === 'services' ? 'bg-orange-500 text-white shadow-md' : 'text-blue-200 hover:text-white'
                 }`}
+                suppressHydrationWarning
               >
                 <Navigation className="inline-block w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" /> Find Services (GPS)
               </button>
@@ -271,7 +273,7 @@ export default function HomePage() {
           </div>
 
           {/* Search Box with Dynamic Category Dropdown */}
-          <div className="bg-white rounded-2xl p-2 shadow-2xl flex flex-col sm:flex-row gap-2 text-gray-800">
+          <div className="bg-white rounded-2xl p-2 shadow-2xl flex flex-col sm:flex-row gap-2 text-gray-800" suppressHydrationWarning>
             <div className="flex-1 flex items-center px-3 bg-gray-50 rounded-xl border border-gray-200">
               <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mr-2 shrink-0" />
               <input
@@ -280,6 +282,7 @@ export default function HomePage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="What are you looking for?"
                 className="w-full bg-transparent py-2.5 sm:py-3 focus:outline-none text-xs sm:text-sm font-medium"
+                suppressHydrationWarning
               />
             </div>
 
@@ -289,6 +292,7 @@ export default function HomePage() {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full bg-transparent py-2.5 sm:py-3 focus:outline-none text-xs sm:text-sm font-medium cursor-pointer truncate"
+                suppressHydrationWarning
               >
                 <option value="">All Categories</option>
                 {categories.map((cat) => (
@@ -303,6 +307,7 @@ export default function HomePage() {
                 value={selectedDistrict}
                 onChange={(e) => setSelectedDistrict(e.target.value)}
                 className="w-full bg-transparent py-2.5 sm:py-3 focus:outline-none text-xs sm:text-sm font-medium cursor-pointer"
+                suppressHydrationWarning
               >
                 <option value="">All Sri Lanka</option>
                 {sriLankaDistricts.map((district) => (
@@ -346,12 +351,14 @@ export default function HomePage() {
               <button 
                 onClick={() => scrollCategories('left')}
                 className="p-1.5 sm:p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 shadow-sm text-gray-700 transition"
+                suppressHydrationWarning
               >
                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <button 
                 onClick={() => scrollCategories('right')}
                 className="p-1.5 sm:p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 shadow-sm text-gray-700 transition"
+                suppressHydrationWarning
               >
                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -439,23 +446,25 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4 sm:mb-6">
             <h2 className="text-lg sm:text-2xl font-black text-gray-900">Product & Ad Listings</h2>
 
-            <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto" suppressHydrationWarning>
               <select
                 value={selectedCondition}
                 onChange={(e) => setSelectedCondition(e.target.value)}
                 className="bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-xl px-3 py-2.5 focus:outline-none focus:border-orange-500 cursor-pointer shadow-sm"
+                suppressHydrationWarning
               >
                 <option value="all">All Conditions</option>
                 <option value="brand new">Brand New</option>
                 <option value="used">Used</option>
               </select>
 
-              <div className="flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
+              <div className="flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm" suppressHydrationWarning>
                 <SlidersHorizontal className="w-3.5 h-3.5 text-gray-400 mr-2" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
                   className="bg-transparent text-gray-700 text-xs font-medium focus:outline-none cursor-pointer"
+                  suppressHydrationWarning
                 >
                   <option value="newest">Newest First</option>
                   <option value="price_low">Price: Low to High</option>
@@ -476,6 +485,11 @@ export default function HomePage() {
               {filteredAds.map((ad) => {
                 const isFavorite = favorites.includes(ad.id)
 
+                const hasDiscount = ad.discount_price && Number(ad.discount_price) > 0 && Number(ad.discount_price) < Number(ad.price);
+                const discountPercentage = hasDiscount 
+                  ? Math.round(((Number(ad.price) - Number(ad.discount_price)) / Number(ad.price)) * 100) 
+                  : 0;
+
                 return (
                   <Link key={ad.id} href={`/ads/${ad.id}`} className="block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition group relative">
                     <div className="h-36 sm:h-48 bg-gray-100 flex items-center justify-center overflow-hidden relative">
@@ -484,6 +498,13 @@ export default function HomePage() {
                         <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-20 bg-purple-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-md flex items-center gap-1 backdrop-blur-md">
                           <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />
                           Bumped
+                        </div>
+                      )}
+
+                      {hasDiscount && ad.bump_status !== 'approved' && (
+                        <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-20 bg-orange-500 text-white text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 sm:py-1 rounded-full shadow-md flex items-center gap-0.5">
+                          <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                          {discountPercentage}% OFF
                         </div>
                       )}
 
@@ -504,7 +525,24 @@ export default function HomePage() {
 
                     <div className="p-3 sm:p-4">
                       <h3 className="font-bold text-xs sm:text-sm text-gray-900 line-clamp-1">{ad.title}</h3>
-                      <p className="text-orange-600 font-black text-sm sm:text-lg my-0.5 sm:my-1">LKR {Number(ad.price || 0).toLocaleString()}</p>
+                      
+                      <div className="my-0.5 sm:my-1">
+                        {hasDiscount ? (
+                          <div className="flex flex-col">
+                            <span className="text-orange-600 font-black text-sm sm:text-lg">
+                              LKR {Number(ad.discount_price).toLocaleString()}
+                            </span>
+                            <span className="text-gray-400 text-[10px] sm:text-xs line-through">
+                              LKR {Number(ad.price).toLocaleString()}
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="text-orange-600 font-black text-sm sm:text-lg">
+                            LKR {Number(ad.price || 0).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+
                       <div className="text-[11px] sm:text-xs text-gray-500 mt-1 sm:mt-2">📍 {ad.city || 'Sri Lanka'}</div>
                     </div>
                   </Link>

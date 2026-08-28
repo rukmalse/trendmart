@@ -30,6 +30,7 @@ function PostAdForm() {
   const [title, setTitle] = useState('')
   const [categoryId, setCategoryId] = useState('') // මෙහි දැන් store වන්නේ Category එකේ UUID එකයි
   const [price, setPrice] = useState('')
+  const [discountPrice, setDiscountPrice] = useState('') // 🌟 නව එකතු කිරීම: වට්ටම් මිල (Discount Price)
   const [condition, setCondition] = useState('used')
   const [district, setDistrict] = useState('Colombo')
   const [city, setCity] = useState('')
@@ -144,16 +145,17 @@ function PostAdForm() {
       }
     }
 
-    // 3. ඩේටාබේස් එකෙන් තෝරාගත් Category UUID එක සහ අනෙකුත් විස්තර සමග Ad එක Database එකට Insert කිරීම
+    // 3. ඩේටාබේස් එකට Ad එක Insert කිරීම (discount_price ද සමඟ)
     const { error } = await supabase
       .from('ads')
       .insert([
         {
           user_id: user.id,
-          category_id: categoryId, // මෙහි දැන් ඩේටාබේස් එකේ අදාළ category එකේ UUID එක ගබඩා වේ
+          category_id: categoryId,
           title,
           description,
           price: parseFloat(price),
+          discount_price: discountPrice ? parseFloat(discountPrice) : null, // 🌟 මෙතැනින් discount price එක යැවේ (නැත්නම් null වේ)
           condition,
           district,
           city,
@@ -287,7 +289,6 @@ function PostAdForm() {
                 className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white cursor-pointer"
               >
                 <option value="">Select Category</option>
-                {/* 🌟 Database එකෙන් ලබාගත් categories මෙහි ඩයිනමික් ලෙස ලැයිස්තුගත වේ */}
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -310,17 +311,33 @@ function PostAdForm() {
             </div>
           </div>
 
-          {/* Price */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Price (LKR)</label>
-            <input
-              type="number"
-              required
-              placeholder="150000"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
-            />
+          {/* Price & Discount Price Inputs */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Regular Price (LKR) *</label>
+              <input
+                type="number"
+                required
+                placeholder="150000"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>Discount Price (LKR)</span>
+                <span className="text-xs text-gray-400 font-normal">Optional</span>
+              </label>
+              <input
+                type="number"
+                placeholder="130000 (වට්ටම් මිලක් ඇත්නම්)"
+                value={discountPrice}
+                onChange={(e) => setDiscountPrice(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-orange-50/20"
+              />
+            </div>
           </div>
 
           {/* District & City */}

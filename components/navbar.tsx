@@ -12,8 +12,8 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>('customer')
   const [avatarUrl, setAvatarUrl] = useState<string>('') 
-  const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false) // 👈 Mobile/Click friendly dropdown state
 
   const [siteSettings, setSiteSettings] = useState({
     site_name: 'Trend Mart',
@@ -22,15 +22,16 @@ export default function Navbar() {
   })
 
   useEffect(() => {
-    async function checkUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+    async function getUserData() {
+      const { data: { session } } = await supabase.auth.getSession()
+      const currentUser = session?.user || null
+      setUser(currentUser)
 
-      if (user) {
+      if (currentUser) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('role, avatar_url')
-          .eq('id', user.id)
+          .eq('id', currentUser.id)
           .single()
         
         if (profile) {
@@ -38,9 +39,8 @@ export default function Navbar() {
           if (profile.avatar_url) setAvatarUrl(profile.avatar_url)
         }
       }
-      setLoading(false)
     }
-    checkUser()
+    getUserData()
 
     async function fetchSettings() {
       const { data } = await supabase
@@ -60,12 +60,13 @@ export default function Navbar() {
     fetchSettings()
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user || null)
-      if (session?.user) {
+      const currentUser = session?.user || null
+      setUser(currentUser)
+      if (currentUser) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('role, avatar_url')
-          .eq('id', session.user.id)
+          .eq('id', currentUser.id)
           .single()
         if (profile) {
           if (profile.role) setUserRole(profile.role)
@@ -88,6 +89,7 @@ export default function Navbar() {
     setUserRole('customer')
     setAvatarUrl('')
     setMobileMenuOpen(false)
+    setDropdownOpen(false)
     router.refresh()
     router.push('/')
   }
@@ -143,39 +145,50 @@ export default function Navbar() {
             + Post Ad
           </Link>
 
-          {!loading && (
-            user ? (
-              <div className="relative group">
-                <div className="flex items-center cursor-pointer p-1">
-                  {avatarUrl ? (
-                    <img 
-                      src={avatarUrl} 
-                      alt="Profile" 
-                      className="w-10 h-10 rounded-full object-cover border-2 shadow-sm" 
-                      style={{ borderColor: siteSettings.primary_color }}
-                    />
-                  ) : (
-                    <div 
-                      className="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-xs shadow-sm"
-                      style={{ backgroundColor: siteSettings.primary_color }}
-                    >
-                      {user.email?.[0]?.toUpperCase() || 'U'}
-                    </div>
-                  )}
-                </div>
+          {user ? (
+            <div className="relative">
+              <div 
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center cursor-pointer p-1"
+              >
+                {avatarUrl ? (
+                  <img 
+                    src={avatarUrl} 
+                    alt="Profile" 
+                    className="w-10 h-10 rounded-full object-cover border-2 shadow-sm" 
+                    style={{ borderColor: siteSettings.primary_color }}
+                  />
+                ) : (
+                  <div 
+                    className="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-xs shadow-sm"
+                    style={{ backgroundColor: siteSettings.primary_color }}
+                  >
+                    {user.email?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
+              </div>
 
-                {/* Dropdown Menu */}
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 hidden group-hover:block hover:block z-50">
+              {/* Dropdown Menu (Click toggle for reliability) */}
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50">
                   <div className="px-4 py-2 border-b border-gray-100 mb-1">
                     <p className="text-[11px] text-gray-500 truncate">{user.email}</p>
                   </div>
 
-                  <Link href="/dashboard/my-ads" className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 font-medium">
+                  <Link 
+                    href="/dashboard/my-ads" 
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 font-medium"
+                  >
                     <Briefcase className="w-3.5 h-3.5 text-orange-500" />
                     <span>My Jobs</span>
                   </Link>
 
-                  <Link href={dashboardHref} className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 font-medium">
+                  <Link 
+                    href={dashboardHref} 
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 font-medium"
+                  >
                     <LayoutDashboard className="w-3.5 h-3.5 text-orange-500" />
                     <span>Dashboard</span>
                   </Link>
@@ -188,12 +201,12 @@ export default function Navbar() {
                     <span>Logout</span>
                   </button>
                 </div>
-              </div>
-            ) : (
-              <Link href="/login" className="text-xs font-bold text-gray-700 hover:text-orange-500 px-3 py-2">
-                Login
-              </Link>
-            )
+              )}
+            </div>
+          ) : (
+            <Link href="/login" className="text-xs font-bold text-gray-700 hover:text-orange-500 px-3 py-2 bg-gray-100 rounded-xl transition">
+              Login
+            </Link>
           )}
         </div>
 
@@ -229,55 +242,52 @@ export default function Navbar() {
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
               
               {/* User Profile Box & Small Logout below it */}
-              {!loading && (
-                user ? (
-                  <div className="space-y-1.5">
-                    <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 flex items-center gap-3">
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover border" />
-                      ) : (
-                        <div 
-                          className="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-xs shadow-sm"
-                          style={{ backgroundColor: siteSettings.primary_color }}
-                        >
-                          {user.email?.[0]?.toUpperCase() || 'U'}
-                        </div>
-                      )}
-                      <div className="overflow-hidden">
-                        <p className="text-[11px] text-gray-400 font-medium">Logged in as</p>
-                        <p className="text-xs font-bold text-gray-800 truncate">{user.email}</p>
-                      </div>
-                    </div>
-                    
-                    {/* Small Logout Link right under the card */}
-                    <div className="flex justify-end pr-1">
-                      <button 
-                        onClick={handleLogout}
-                        className="text-[11px] font-semibold text-red-500 hover:text-red-700 flex items-center gap-1 transition"
+              {user ? (
+                <div className="space-y-1.5">
+                  <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 flex items-center gap-3">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover border" />
+                    ) : (
+                      <div 
+                        className="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-xs shadow-sm"
+                        style={{ backgroundColor: siteSettings.primary_color }}
                       >
-                        <LogOut className="w-3 h-3" /> Logout
-                      </button>
+                        {user.email?.[0]?.toUpperCase() || 'U'}
+                      </div>
+                    )}
+                    <div className="overflow-hidden">
+                      <p className="text-[11px] text-gray-400 font-medium">Logged in as</p>
+                      <p className="text-xs font-bold text-gray-800 truncate">{user.email}</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <Link 
-                      href="/login" 
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex-1 text-center py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                  
+                  <div className="flex justify-end pr-1">
+                    <button 
+                      onClick={handleLogout}
+                      className="text-[11px] font-semibold text-red-500 hover:text-red-700 flex items-center gap-1 transition"
                     >
-                      Login
-                    </Link>
-                    <Link 
-                      href="/register" 
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-white shadow-sm"
-                      style={{ backgroundColor: siteSettings.primary_color }}
-                    >
-                      Sign Up
-                    </Link>
+                      <LogOut className="w-3 h-3" /> Logout
+                    </button>
                   </div>
-                )
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Link 
+                    href="/login" 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                  >
+                    Login
+                  </Link>
+                  <Link 
+                    href="/register" 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-white shadow-sm"
+                    style={{ backgroundColor: siteSettings.primary_color }}
+                  >
+                    Sign Up
+                  </Link>
+                </div>
               )}
 
               {/* Navigation Menu Items */}
