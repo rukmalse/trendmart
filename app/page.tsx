@@ -222,7 +222,7 @@ export default function HomePage() {
   })
 
   return (
-    <main className="min-h-screen bg-gray-50 text-gray-800">
+    <main className="min-h-screen bg-gray-50 text-gray-800" suppressHydrationWarning>
       {/* Hero & Tabs */}
       <section 
         className="relative text-white py-8 sm:py-14 px-4 bg-cover bg-center"
