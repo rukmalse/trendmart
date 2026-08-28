@@ -49,7 +49,8 @@ export default function LocationMap({
   const mapRef = useRef<any>(null)
 
   return (
-    <div className="h-[400px] w-full rounded-2xl overflow-hidden shadow-sm z-0">
+    // z-0 දීමෙන් මැප් එක නැවත සාමාන්‍ය පරිදි දර්ශනය වේ
+    <div className="h-[400px] w-full rounded-2xl overflow-hidden shadow-sm relative z-0">
       <MapContainer
         center={[center.lat, center.lng]}
         zoom={13}
