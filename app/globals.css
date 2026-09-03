@@ -54,3 +54,16 @@ html, body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mobile සහ Desktop වල සියලුම Input, Select සහ Textarea සඳහා නිවැරදි වර්ණ සැකසීම */
+input, select, textarea {
+  color: #1f2937 !important; /* Dark Gray text */
+}
+
+input::placeholder, textarea::placeholder {
+  color: #9ca3af !important; /* Light Gray placeholder text */
+}

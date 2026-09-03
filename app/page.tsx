@@ -12,7 +12,7 @@ import {
   Car, Home, Building2, Smartphone, Tv, Flower2, Dog, 
   Tractor, Wrench, Shirt, Trophy, Factory, GraduationCap, 
   ShoppingBag, Briefcase, Globe2, X, Award, Heart, Store, ArrowRight, SlidersHorizontal, Zap,
-  ChevronLeft, ChevronRight, Gem
+  ChevronLeft, ChevronRight, Gem, Clock
 } from 'lucide-react'
 
 const sriLankaDistricts = [
@@ -37,6 +37,42 @@ const iconMap: Record<string, any> = {
   Car, Home, Building2, Smartphone, Tv, Flower2, Dog, 
   Tractor, Wrench, Shirt, Trophy, Factory, GraduationCap, 
   ShoppingBag, Briefcase, Globe2, Tag, Gem
+}
+
+// කොපමණ කලකට පෙර දැමූ එකක්ද යන්න ගණනය කරන ෆන්ක්ෂන් එක (Time Elapsed Helper)
+function getTimeAgo(createdAt: string): string {
+  const now = new Date();
+  const createdDate = new Date(createdAt);
+  const diffInSeconds = Math.floor((now.getTime() - createdDate.getTime()) / 1000);
+
+  if (diffInSeconds < 60) {
+    return 'Just now';
+  }
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes}m ago`;
+  }
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  const remainingMinutes = diffInMinutes % 60;
+  if (diffInHours < 24) {
+    return remainingMinutes > 0 ? `${diffInHours}h ${remainingMinutes}m` : `${diffInHours}h ago`;
+  }
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  const remainingHours = diffInHours % 24;
+  if (diffInDays < 30) {
+    return remainingHours > 0 ? `${diffInDays}d ${remainingHours}h` : `${diffInDays}d ago`;
+  }
+
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return `${diffInMonths}mo ago`;
+  }
+
+  const diffInYears = Math.floor(diffInDays / 365);
+  return `${diffInYears}y ago`;
 }
 
 export default function HomePage() {
@@ -272,7 +308,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Search Box with Dynamic Category Dropdown */}
+          {/* Search Box */}
           <div className="bg-white rounded-2xl p-2 shadow-2xl flex flex-col sm:flex-row gap-2 text-gray-800" suppressHydrationWarning>
             <div className="flex-1 flex items-center px-3 bg-gray-50 rounded-xl border border-gray-200">
               <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mr-2 shrink-0" />
@@ -333,7 +369,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 🌟 Categories Slider Section */}
+      {/* Categories Slider Section */}
       {activeTab === 'classifieds' && (
         <section className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
           <div className="flex justify-between items-center mb-3 sm:mb-6">
@@ -543,7 +579,16 @@ export default function HomePage() {
                         )}
                       </div>
 
-                      <div className="text-[11px] sm:text-xs text-gray-500 mt-1 sm:mt-2">📍 {ad.city || 'Sri Lanka'}</div>
+                      {/* Location and Time Elapsed Display (පහළින් podiwata කාලය පෙන්වන කොටස) */}
+                      <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        <span className="truncate flex items-center gap-1">📍 {ad.city || 'Sri Lanka'}</span>
+                        {ad.created_at && (
+                          <span className="flex items-center gap-1 text-gray-400 shrink-0 font-medium">
+                            <Clock className="w-3 h-3" />
+                            {getTimeAgo(ad.created_at)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Link>
                 )
