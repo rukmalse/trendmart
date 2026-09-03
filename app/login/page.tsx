@@ -198,7 +198,7 @@ function AuthForm() {
                 type="password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.S ? e.target.value : e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 text-gray-950 font-semibold border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-orange-500 focus:bg-white transition placeholder:text-gray-400"
               />
