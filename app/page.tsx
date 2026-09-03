@@ -79,6 +79,7 @@ export default function HomePage() {
   const router = useRouter()
   const supabase = createClient()
 
+  const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<'classifieds' | 'services'>('classifieds')
   
   const [allAds, setAllAds] = useState<any[]>([])
@@ -112,6 +113,7 @@ export default function HomePage() {
   }
 
   useEffect(() => {
+    setMounted(true)
     async function initData() {
       const savedFavs = JSON.parse(localStorage.getItem('trendmart_favorites') || '[]')
       setFavorites(savedFavs)
@@ -256,6 +258,11 @@ export default function HomePage() {
     }
     return 0
   })
+
+  // Prevent server/client markup mismatch before mount
+  if (!mounted) {
+    return <main className="min-h-screen bg-gray-50 text-gray-800" />
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-800" suppressHydrationWarning>
@@ -579,7 +586,7 @@ export default function HomePage() {
                         )}
                       </div>
 
-                      {/* Location and Time Elapsed Display (පහළින් podiwata කාලය පෙන්වන කොටස) */}
+                      {/* Location and Time Elapsed Display */}
                       <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-500 mt-2 pt-2 border-t border-gray-100">
                         <span className="truncate flex items-center gap-1">📍 {ad.city || 'Sri Lanka'}</span>
                         {ad.created_at && (

@@ -271,23 +271,16 @@ export default function Navbar() {
                   </div>
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <Link 
-                    href="/login" 
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 text-center py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50"
-                  >
-                    Login
-                  </Link>
-                  <Link 
-                    href="/register" 
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-white shadow-sm"
-                    style={{ backgroundColor: siteSettings.primary_color }}
-                  >
-                    Sign Up
-                  </Link>
-                </div>
+              <div className="flex gap-2">
+                <Link 
+                  href="/login" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 text-center py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  Sign Up / Login
+                </Link>
+                
+              </div>
               )}
 
               {/* Navigation Menu Items */}

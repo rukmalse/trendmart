@@ -25,21 +25,6 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* 🌟 Forms වල Fonts තද (Bold) සහ පැහැදිලි කිරීමට එකතු කරන ලද කොටස */
-input, select, textarea {
-  font-weight: 600 !important; /* අකුරුSemi-bold කර තදින් පෙන්වයි */
-}
-
-/* Placeholder අකුරු සාමාන්‍ය පරිදි සැහැල්ලුවට තැබීමට */
-input::placeholder, select::placeholder, textarea::placeholder {
-  font-weight: 400 !important;
-  opacity: 1;
-}
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* 🚀 Mobile Overflow Fix */
 html, body {
   max-width: 100vw;
@@ -55,15 +40,24 @@ html, body {
   scrollbar-width: none;
 }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Mobile සහ Desktop වල සියලුම Input, Select සහ Textarea සඳහා නිවැරදි වර්ණ සැකසීම */
+/* 🌟 Universal Form Styling (Light & Dark Mode Support) */
 input, select, textarea {
-  color: #1f2937 !important; /* Dark Gray text */
+  color: #111827 !important;           /* ඕනෑම අවස්ථාවක ටයිප් කරන අකුරු තද කළු පැහැයෙන් පෙන්වයි */
+  background-color: #f9fafb !important;  /* ආලෝකවත් පැහැදිලි පසුබිමක් ලබා දෙයි */
+  font-weight: 600 !important;         /* අකුරු Semi-bold කර තදින් පෙන්වයි */
 }
 
-input::placeholder, textarea::placeholder {
-  color: #9ca3af !important; /* Light Gray placeholder text */
+/* Dark Mode වලදී Input Field එක ඇතුළත් පසුබිම සහ අකුරු පැහැදිලිව තබා ගැනීමට */
+@media (prefers-color-scheme: dark) {
+  input, select, textarea {
+    color: #f3f4f6 !important;         /* Dark mode එකේදී අකුරු සුදු/සැහැල්ලු පැහැයට හැරේ */
+    background-color: #1f2937 !important; /* Dark mode background එකට ගැළපෙන පසුබිමක් ලබා දෙයි */
+  }
+}
+
+/* Placeholder අකුරු සඳහා වර්ණය සහ සාමාන්‍ය බර (Weight) සැකසීම */
+input::placeholder, select::placeholder, textarea::placeholder {
+  color: #9ca3af !important;
+  font-weight: 400 !important;
+  opacity: 1;
 }
