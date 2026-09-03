@@ -39,7 +39,6 @@ const iconMap: Record<string, any> = {
   ShoppingBag, Briefcase, Globe2, Tag, Gem
 }
 
-// කොපමණ කලකට පෙර දැමූ එකක්ද යන්න ගණනය කරන ෆන්ක්ෂන් එක (Time Elapsed Helper)
 function getTimeAgo(createdAt: string): string {
   const now = new Date();
   const createdDate = new Date(createdAt);
@@ -259,7 +258,6 @@ export default function HomePage() {
     return 0
   })
 
-  // Prevent server/client markup mismatch before mount
   if (!mounted) {
     return <main className="min-h-screen bg-gray-50 text-gray-800" />
   }
